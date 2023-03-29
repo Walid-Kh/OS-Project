@@ -5,7 +5,7 @@
 #define Lchild(i) (2 * i + 1)
 #define Rchild(i) (2 * i + 2)
 #define parent(i) ((i - 1) / 2)
-
+//Hello 
 struct minHeap
 {
     // TODO: replace with process type
@@ -79,4 +79,8 @@ void insert(minHeap *heap, int item)
     heap->arr[heap->count] = item;
     heap->count++;
     INTERNAL_heapifyUp(heap);
+}
+struct processData* Peek(minHeap* heap)
+{
+//return heap->arr[0]; Type Of Arr To Be Modified
 }
