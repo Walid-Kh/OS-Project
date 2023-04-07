@@ -86,3 +86,7 @@ void insert(minHeap *heap, int item)
     heap->count++;
     INTERNAL_heapifyUp(heap);
 }
+struct processData *peek(minHeap *heap)
+{
+    // return heap->arr[0]; Type Of Arr To Be Modified
+}
