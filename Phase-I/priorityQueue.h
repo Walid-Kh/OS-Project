@@ -6,18 +6,24 @@
 #define Rchild(i) (2 * i + 2)
 #define parent(i) ((i - 1) / 2)
 
-struct minHeap
+typedef struct minHeap
 {
     // TODO: replace with process type
     int *arr;
     int count;
     int capacity;
-};
-typedef struct minHeap minHeap;
+} minHeap;
 
 minHeap *createHeap(int capacity)
 {
-    minHeap *heap = malloc(sizeof(minHeap)); 
+    minHeap *heap = (minHeap *)malloc(sizeof(minHeap));
+    heap->capacity = capacity;
+    heap->arr = (int *)malloc(sizeof(int) * capacity);
+}
+void destroyHeap(minHeap *heap)
+{
+    free(heap->arr);
+    free(heap);
 }
 bool INTERNAL_hasLeftChild(minHeap *heap, int index)
 {
@@ -41,7 +47,7 @@ void INTERNAL_heapifyDown(minHeap *heap)
         {
             int temp = heap->arr[index];
             heap->arr[index] = heap->arr[min];
-            heap->arr[min] = heap->arr[index];
+            heap->arr[min] = temp;
             index = min;
         }
     }
@@ -50,7 +56,7 @@ void INTERNAL_heapifyDown(minHeap *heap)
 void INTERNAL_heapifyUp(minHeap *heap)
 {
     int index = heap->count - 1;
-    while (index != 0 && heap->arr[index] > heap->arr[parent(index)])
+    while (index != 0 && heap->arr[index] < heap->arr[parent(index)])
     {
         int temp = heap->arr[index];
         heap->arr[index] = heap->arr[parent(index)];
@@ -74,7 +80,7 @@ int extract(minHeap *heap)
 // TODO: Replace with process type (item)
 void insert(minHeap *heap, int item)
 {
-    if (heap->capacity >= heap->count)
+    if (heap->capacity == heap->count)
         return;
     heap->arr[heap->count] = item;
     heap->count++;
