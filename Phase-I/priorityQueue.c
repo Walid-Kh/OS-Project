@@ -1,16 +1,17 @@
 #include "priorityQueue.h"
 #include "stdio.h"
-
+#include "types.h"
 int main()
 {
-    minHeap *h = createHeap(10);
-    for (int i = 1; i < 6; i++)
+    minHeap *h = createHeap(5);
+    for (int i = 0; i < 5; i++)
     {
-        insert(h, i);
+        struct PCB r = {rand() % 10, rand() % 10, rand() % 10, rand() % 10, rand() % 10, rand() % 10, rand() % 10, rand() % 10};
+        insertHPF(h, &r);
     }
-    insert(h, 0);
-    for (int i = 1; i < 6; i++)
+    for (int i = 0; i < 5; i++)
     {
-        printf("%d ", extract(h));
+        struct PCB *res = extractHPF(h);
+        printf("\n %d", res->priority);
     }
 }

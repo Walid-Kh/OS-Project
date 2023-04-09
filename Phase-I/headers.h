@@ -18,6 +18,9 @@ typedef short bool;
 #define SHKEY 300
 
 
+
+
+
 ///==============================
 //don't mess with this variable//
 int * shmaddr;                 //
@@ -47,7 +50,6 @@ void initClk()
     }
     shmaddr = (int *) shmat(shmid, (void *)0, 0);
 }
-
 
 /*
  * All process call this function at the end to release the communication
