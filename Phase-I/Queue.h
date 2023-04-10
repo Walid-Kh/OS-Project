@@ -2,84 +2,78 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-
-
-
-struct process
+typedef struct process
 {
     int id;
     int arrival;
     int runtime;
     int priority;
-};
+} process;
 
-
-struct Node
+typedef struct Node
 {
     struct process process;
-    struct Node * Next;
+    struct Node *Next;
+} Node;
 
-};
-
-struct Queue
+typedef struct Queue
 {
-   struct Node* Front;
-   struct Node* Rear;
-   int count;
-};
+    struct Node *Front;
+    struct Node *Rear;
+    int count;
+} Queue;
 
-void  queueConstractor(struct Queue q)
+struct Queue *createQueue()
 {
-    q.Front=NULL;
-    q.Rear=NULL;
-    q.count=0;
+    struct Queue *q;
+    q = (struct Queue *)malloc(sizeof(Queue));
+    q->count = 0;
+    q->Front = NULL;
+    q->Rear = NULL;
+    return q;
+}
+struct Node *createNode()
+{
+    return (struct Node *)malloc(sizeof(Node));
 }
 
-
-
-bool isEmpty(struct Queue q) {
-    if (q.Front == NULL)
+bool isEmpty(struct Queue *q)
+{
+    if (q->Front == NULL)
         return 1;
     return 0;
 }
 
-void enqueue(struct Queue q,struct process p){
+void enqueue(struct Queue *q, struct process *p)
+{
 
-    struct Node *n ;
-    n =(struct Node*) malloc(sizeof(struct Node));
+    struct Node *n = createNode();
 
-    n->process=p;
+    n->process = *p;
 
-    if(q.count==0)
+    if (q->count == 0)
     {
-        q.Front=n;
-        q.Rear=n;
-        n->process=p;
+        q->Front = n;
+        q->Rear = n;
     }
-
-    else{
-        q.Rear->Next=n; //there is a error here
-        q.Rear=n;
-        q.count=q.count+1;
-
-     }
-
+    else
+    {
+        q->Rear->Next = n; // there is a error here
+        q->Rear = n;
+    }
+    q->count++;
 }
 
+struct process dequeue(struct Queue *q)
+{
 
-struct process dequeue (struct Queue q){
+    struct Node *temp;
+    struct process tempProcess;
+    tempProcess = q->Front->process;
 
-   struct Node *temp;
-   struct process tempProcess;
-    tempProcess=q.Front->process;
-
-    temp=q.Front;
-    q.Front=q.Front->Next;
+    temp = q->Front;
+    q->Front = q->Front->Next;
     free(temp);
-    q.count=q.count-1;
+    q->count = q->count - 1;
     return tempProcess;
-
 }
-
-
-
