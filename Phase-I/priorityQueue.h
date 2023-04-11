@@ -1,3 +1,6 @@
+#ifndef _PRIORITY_QUEUE_H
+#define _PRIORITY_QUEUE_H
+
 // TODO: Make a swap function for process nodes
 #include <stdlib.h>
 #include <stdbool.h>
@@ -167,3 +170,5 @@ void insert(minHeap *heap, int item)
     heap->count++;
     INTERNAL_heapifyUp(heap);
 }*/
+
+#endif

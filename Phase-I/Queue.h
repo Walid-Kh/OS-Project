@@ -1,3 +1,5 @@
+#ifndef _QUEUE_H
+#define _QUEUE_H
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -71,3 +73,4 @@ struct process dequeue(struct Queue *q)
     q->count = q->count - 1;
     return tempProcess;
 }
+#endif

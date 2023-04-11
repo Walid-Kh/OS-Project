@@ -20,8 +20,9 @@ int main(int agrc, char *argv[])
             remainingtime--;
         }
     }
+    kill(getppid(), SIGUSR2);
 
-    destroyClk(false);
+    destroyClk(true);
 
     return 0;
 }
