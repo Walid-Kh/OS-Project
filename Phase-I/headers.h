@@ -4,6 +4,7 @@
 #include <stdio.h> //if you don't use scanf/printf change this include
 #include <stdlib.h>
 #include <stdbool.h>
+#include <math.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ipc.h>
@@ -64,6 +65,28 @@ void destroyClk(bool terminateAll)
     if (terminateAll)
     {
         killpg(getpgrp(), SIGINT); // TODO: Change this later
+    }
+}
+char *stateToString(enum state s)
+{
+    switch (s)
+    {
+    case STARTED:
+        return "started";
+        break;
+    case STOPPED:
+        return "stopped";
+        break;
+    case FINISHED:
+        return "finished";
+        break;
+    case RESUMED:
+        return "resumed";
+        break;
+
+    default:
+        return "I LOVE OS";
+        break;
     }
 }
 

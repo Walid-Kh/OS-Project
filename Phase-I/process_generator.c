@@ -8,7 +8,6 @@ void clearResources(int);
 int main(int argc, char *argv[])
 {
     signal(SIGINT, clearResources);
-    initClk();
     // TODO Initialization
     // 1. Read the input files. (done)
     char line[30];
@@ -75,6 +74,7 @@ int main(int argc, char *argv[])
     //     execl("./scheduler.out", "./build/scheduler.out", "1", (const char *)0);
     //     exit(-1);
     // }
+    initClk();
 
     // 4. Use this function after creating the clock process to initialize clock
     // To get time use this

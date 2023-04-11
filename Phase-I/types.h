@@ -17,7 +17,9 @@ typedef struct PCB
     int startingTime;  // starting time given by the algorithm initially = -1
     int runningTime;   // running time as it exist in processes.txt
     int remainingTime; // decremented by algorithm when it's worked on initially = runningTime
-    int waitingTime;   // Time 
+    int waitingTime;   // Time
+    int finishTime;
+    int turnAroundTime; 
     state currentState; // started finished resumed stopped
 } PCB;
 typedef struct process
