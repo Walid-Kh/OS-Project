@@ -5,10 +5,11 @@ build:
 	gcc process.c -o process.out
 	gcc test_generator.c -o test_generator.out
 
+
 clean:
 	rm *.out
 
 all: clean build
 
 run:
-	./build/process_generator.out
+	./process_generator.out

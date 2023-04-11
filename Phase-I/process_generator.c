@@ -51,8 +51,7 @@ int main(int argc, char *argv[])
     //=======================send the selected algorithm to scheduler.c==================
     int send_val;
 
-    key_t qkey = ftok("qkey", 'q');
-    Qid = msgget(qkey, 0666 | IPC_CREAT);
+    Qid = msgget(PG_SH_KEY, 0666 | IPC_CREAT);    // Creat the Message Queue
 
     if (Qid == -1)
     {
@@ -61,20 +60,21 @@ int main(int argc, char *argv[])
     }
 
     // 3. Initiate and create the scheduler and clock processes.
-    // clkpid = fork();
-    // if (clkpid == 0)
-    // {
-    //     execl("./clk.out", "./build/clk.out", NULL);
-    //     exit(-1);
-    // }
+     clkpid = fork();
+    if (clkpid == 0)
+    {
+         execl("./clk.out", "./build/clk.out", NULL);
+         exit(-1);
+    }
+/*
+    schpid = fork();
+    if (schpid == 0)
+    {execl("./scheduler.out", "./build/scheduler.out", "1", (const char *)0);
+        exit(-1);
+    }
 
-    // schpid = fork();
-    // if (schpid == 0)
-    // {
-    //     execl("./scheduler.out", "./build/scheduler.out", "1", (const char *)0);
-    //     exit(-1);
-    // }
-    initClk();
+  */
+initClk();
 
     // 4. Use this function after creating the clock process to initialize clock
     // To get time use this
@@ -103,8 +103,8 @@ int main(int argc, char *argv[])
     }
     // 7. Clear clock resources
     // TODO: change later causes seg fault
-    // destroyClk(true);
-    clearResources(9);
+     destroyClk(true);
+     clearResources(9);
 }
 
 void clearResources(int signum)

@@ -1,10 +1,14 @@
 #include "headers.h"
 #include "types.h"
 #include "priorityQueue.h"
+
+
+
 int Qid;
 int nprocesses;
 bool isRunning = false;
 struct PCB currentRunningProcess;
+
 void writeStats(struct PCB pcb, int atTime)
 {
     FILE *file = fopen("Scheduler.log", "w");
@@ -23,14 +27,10 @@ void writeStats(struct PCB pcb, int atTime)
                 pcb.remainingTime,
                 pcb.waitingTime,
                 pcb.turnAroundTime,
-                round((pcb.turnAroundTime / (double)pcb.runningTime) * 100) / 100.0f);
+                /*round*/((pcb.turnAroundTime / (double)pcb.runningTime) * 100) / 100.0f);
     fclose(file);
 }
-void initQ()
-{
-    key_t qkey = ftok("qkey", 'q');
-    Qid = msgget(qkey, 0666 | IPC_CREAT);
-}
+
 void handler(int signum)
 {
 
@@ -55,6 +55,8 @@ void handler(int signum)
 
 void HPF()
 {
+
+
     int remainingProcesses = nprocesses;
     minHeap *q = createHeap(nprocesses);
     while (remainingProcesses || isRunning)
@@ -79,14 +81,16 @@ void HPF()
         }
         if (!isRunning)
         {
-            isRunning = true;
-            struct PCB *pcb = extractHPF(q);
+        isRunning = true;
+        struct PCB *pcb = extractHPF(q);
+
             pcb->waitingTime = getClk() - pcb->arrivalTime;
             pcb->currentState = STARTED;
             pcb->remainingTime = pcb->runningTime;
             pcb->startingTime = getClk();
             currentRunningProcess = *pcb;
             writeStats(currentRunningProcess, currentRunningProcess.arrivalTime);
+
             int pid = fork();
             if (pid == -1)
             {
@@ -99,19 +103,23 @@ void HPF()
                 char remainingTime[4];
                 sprintf(remainingTime, "%d", pcb->remainingTime);
                 execl("./process.out", "./process.out", remainingProcesses, NULL);
+                exit(0);
             }
             pcb->pid = pid;
-        }
+       }
     }
 }
+
+
+
 
 int main(int argc, char *argv[])
 {
 
+    Qid =msgget(PG_SH_KEY, 0666|IPC_CREAT);
     signal(SIGINT, handler);
     signal(SIGUSR2, handler);
     initClk();
-    initQ();
     nprocesses = 5;
     HPF();
     // TODO implement the scheduler :)
