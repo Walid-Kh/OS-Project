@@ -1,27 +1,21 @@
 #include "headers.h"
-#include "Queue.h"
 
-#define PG_SH_KEY 90
+int clkpid, schpid;
+int Qid;
 
 void clearResources(int);
-
-struct processmsg // message structure of process
-{
-    struct process process;
-};
 
 int main(int argc, char *argv[])
 {
     signal(SIGINT, clearResources);
+    initClk();
     // TODO Initialization
     // 1. Read the input files. (done)
     char line[30];
     FILE *fp;
     fp = fopen("processes.txt", "r"); // Open processes.txt
     fgets(line, sizeof(line), fp);    // Get first line and ignore it
-    struct Queue q;                   // the Queue of processes
-    queueConstractor(q);              // call the constractor;
-    struct process p;                 // is already defined in Queue.h
+    struct Queue *q = createQueue();  // call the constractor;
 
     int z;
     while (!feof(fp)) // Get the data for each process and creat it
@@ -37,7 +31,7 @@ int main(int argc, char *argv[])
         fscanf(fp, "%d", &z); // priority
         p.priority = z;
 
-        enqueue(q, p); // there is a error here
+        enqueue(q, &p); // there is a error here
     }
     fclose(fp);
 
@@ -52,12 +46,15 @@ int main(int argc, char *argv[])
     if (num == 3)
     {
         printf("You choice Round Robin (RR) algorithm ,please enter time slice in second unit");
-        scanf("%d", timeSlice);
+        scanf("%d", &timeSlice);
     }
 
     //=======================send the selected algorithm to scheduler.c==================
-    int Qid, send_val;
-    Qid = msgget(PG_SH_KEY, 0666 | IPC_CREAT);
+    int send_val;
+
+    key_t qkey = ftok("qkey", 'q');
+    Qid = msgget(qkey, 0666 | IPC_CREAT);
+
     if (Qid == -1)
     {
         perror("Error in create the Queue");
@@ -65,41 +62,57 @@ int main(int argc, char *argv[])
     }
 
     // 3. Initiate and create the scheduler and clock processes.
-    int pid = fork();
-    if (pid == 0)
-        execl("./build/clk.out", "clk", NULL);
-    int schpid = fork();
-    if (schpid == 0)
-        execl("./build/scheduler.out", "scheduler", num);
+    // clkpid = fork();
+    // if (clkpid == 0)
+    // {
+    //     execl("./clk.out", "./build/clk.out", NULL);
+    //     exit(-1);
+    // }
+
+    // schpid = fork();
+    // if (schpid == 0)
+    // {
+    //     execl("./scheduler.out", "./build/scheduler.out", "1", (const char *)0);
+    //     exit(-1);
+    // }
+
     // 4. Use this function after creating the clock process to initialize clock
-    initClk();
     // To get time use this
-    int x = getClk();
-    printf("current time is %d\n", x);
 
     // TODO Generation Main Loop
     // 5. Create a data structure for processes and provide it with its parameters. (done in the above part)
     // 6. Send the information to the scheduler at the appropriate time.
     while (!isEmpty(q))
     {
-        while (q.Front->process.arrival == getClk())
+        while (!isEmpty(q) && q->Front->process.arrival <= getClk())
         {
             struct process temp;
             temp = dequeue(q);
             // =====> send it to scheduler <=======//
-            struct processmsg p;
+            struct processMsg p;
+            p.mtype = 1;
             p.process = temp;
             send_val = msgsnd(Qid, &p, sizeof(p.process), !IPC_NOWAIT);
             if (send_val == -1)
                 perror("Error in send");
         }
     }
-
+    while (1)
+    {
+        sleep(100);
+    }
     // 7. Clear clock resources
-    destroyClk(true);
+    // TODO: change later causes seg fault
+    // destroyClk(true);
+    clearResources(9);
 }
 
 void clearResources(int signum)
 {
     // TODO Clears all resources in case of interruption
+    printf("\n cleaning resources");
+    msgctl(Qid, IPC_RMID, NULL);
+    kill(clkpid, SIGINT);
+    kill(schpid, SIGKILL);
+    exit(0);
 }

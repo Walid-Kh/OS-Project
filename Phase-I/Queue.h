@@ -1,14 +1,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "types.h"
 
-typedef struct process
-{
-    int id;
-    int arrival;
-    int runtime;
-    int priority;
-} process;
 
 typedef struct Node
 {

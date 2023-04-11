@@ -3,18 +3,25 @@
 /* Modify this file as needed*/
 int remainingtime;
 
-int main(int agrc, char * argv[])
+int main(int agrc, char *argv[])
 {
     initClk();
-    
-    //TODO it needs to get the remaining time from somewhere
-    //remainingtime = ??;
+    remainingtime = atoi(argv[1]);
+
+    // TODO it needs to get the remaining time from somewhere
+    // remainingtime = ??;
+    int lastClk = getClk();
     while (remainingtime > 0)
     {
-        // remainingtime = ??;
+        int currentTime = getClk();
+        if (lastClk < currentTime)
+        {
+            lastClk = currentTime;
+            remainingtime--;
+        }
     }
-    
+
     destroyClk(false);
-    
+
     return 0;
 }
