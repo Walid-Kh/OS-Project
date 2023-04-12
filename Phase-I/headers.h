@@ -41,9 +41,9 @@ void initClk()
 int getClk()
 {
     if (shmaddr)
-        return ((int)*shmaddr);
+        return *shmaddr;
     else
-        return -1;
+        return 0;
 }
 
 /*

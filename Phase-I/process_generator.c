@@ -40,18 +40,18 @@ int main(int argc, char *argv[])
     printf("2. Shortest Remaining time Next (SRTN).\n");
     printf("3. Round Robin (RR).\n");
     printf("======Enter the number of the algorithm you want=====\n");
-    int num, timeSlice;
-    scanf("%d", &num);
-    if (num == 3)
+    int algoNum, timeSlice = 0;
+    scanf("%d", &algoNum);
+    if (algoNum == 3)
     {
         printf("You choice Round Robin (RR) algorithm ,please enter time slice in second unit");
-        scanf("%d", &timeSlice);
+        while (timeSlice <= 0)
+            scanf("%d", &timeSlice);
     }
-
     //=======================send the selected algorithm to scheduler.c==================
     int send_val;
 
-    Qid = msgget(PG_SH_KEY, 0666 | IPC_CREAT);    // Creat the Message Queue
+    Qid = msgget(PG_SH_KEY, 0666 | IPC_CREAT); // Creat the Message Queue
 
     if (Qid == -1)
     {
@@ -60,21 +60,30 @@ int main(int argc, char *argv[])
     }
 
     // 3. Initiate and create the scheduler and clock processes.
-     clkpid = fork();
+    clkpid = fork();
     if (clkpid == 0)
     {
-         execl("./clk.out", "./build/clk.out", NULL);
-         exit(-1);
-    }
-/*
-    schpid = fork();
-    if (schpid == 0)
-    {execl("./scheduler.out", "./build/scheduler.out", "1", (const char *)0);
+        execl("./clk.out", "./build/clk.out", NULL);
         exit(-1);
     }
 
-  */
-initClk();
+    schpid = fork();
+    if (schpid == 0)
+    {
+        char AlgoNumStr[2];
+        char processesCountStr[5];
+        char timeSliceStr[3];
+
+        sprintf(algoNum, "%d", AlgoNumStr);
+        sprintf(processesCountStr, "%d", q->count);
+        sprintf(timeSliceStr, "%d", timeSlice);
+
+        execl("./scheduler.out", "./scheduler.out", AlgoNumStr, processesCountStr, timeSliceStr, (const char *)0);
+
+        exit(-1);
+    }
+
+    initClk();
 
     // 4. Use this function after creating the clock process to initialize clock
     // To get time use this
@@ -82,9 +91,9 @@ initClk();
     // TODO Generation Main Loop
     // 5. Create a data structure for processes and provide it with its parameters. (done in the above part)
     // 6. Send the information to the scheduler at the appropriate time.
-    while (!isEmpty(q))
+    while (!isQueueEmpty(q))
     {
-        while (!isEmpty(q) && q->Front->process.arrival <= getClk())
+        while (!isQueueEmpty(q) && q->Front->process.arrival <= getClk())
         {
             struct process temp;
             temp = dequeue(q);
@@ -97,14 +106,10 @@ initClk();
                 perror("Error in send");
         }
     }
-    while (1)
-    {
-        sleep(100);
-    }
     // 7. Clear clock resources
     // TODO: change later causes seg fault
-     destroyClk(true);
-     clearResources(9);
+    //  destroyClk(true);
+    clearResources(9);
 }
 
 void clearResources(int signum)
@@ -113,6 +118,8 @@ void clearResources(int signum)
     printf("\n cleaning resources");
     msgctl(Qid, IPC_RMID, NULL);
     kill(clkpid, SIGINT);
-    kill(schpid, SIGKILL);
+    kill(schpid, SIGINT);
+    waitpid(schpid, NULL, 0);
+    waitpid(clkpid, NULL, 0);
     exit(0);
 }

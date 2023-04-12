@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include "types.h"
 
-
 typedef struct Node
 {
     struct process process;
@@ -33,7 +32,7 @@ struct Node *createNode()
     return (struct Node *)malloc(sizeof(Node));
 }
 
-bool isEmpty(struct Queue *q)
+bool isQueueEmpty(struct Queue *q)
 {
     if (q->Front == NULL)
         return 1;

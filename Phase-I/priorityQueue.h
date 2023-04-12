@@ -18,6 +18,11 @@ typedef struct minHeap
     int capacity;
 } minHeap;
 
+bool isHeapEmpty(minHeap *heap)
+{
+    return !heap->count;
+}
+
 bool INTERNAL_hasLeftChild(minHeap *heap, int index)
 {
     return Lchild(index) < heap->count;
@@ -88,14 +93,14 @@ struct PCB *extractHPF(minHeap *heap)
     if (heap->count == 0)
     {
         struct PCB r = {0, 0, 0, 0, 0, 0, 0, 0};
-        struct PCB* r1 = &r; 
+        struct PCB *r1 = &r;
         return r1;
     }
     struct PCB item = heap->arr[0];
     heap->arr[0] = heap->arr[heap->count - 1];
     heap->count--;
     INTERNAL_heapifyDownHPF(heap);
-    struct PCB * r1 = &item;
+    struct PCB *r1 = &item;
     return r1;
 }
 

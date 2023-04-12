@@ -22,7 +22,7 @@ int main(int agrc, char *argv[])
     }
     kill(getppid(), SIGUSR2);
 
-    destroyClk(true);
+    destroyClk(false);
 
     return 0;
 }

@@ -1,46 +1,58 @@
 #include "headers.h"
-#include "types.h"
 #include "priorityQueue.h"
 
-
-
 int Qid;
-int nprocesses;
+int processesCount;
 bool isRunning = false;
 struct PCB currentRunningProcess;
-
-void writeStats(struct PCB pcb, int atTime)
+minHeap *q;
+void initFile()
 {
     FILE *file = fopen("Scheduler.log", "w");
-    if (pcb.currentState != FINISHED)
-    {
-        fprintf(file, "At time %d process %d %s arr %d total %d remain %d wait %d",
-                atTime, pcb.id, stateToString(pcb.currentState), pcb.arrivalTime, pcb.runningTime, pcb.remainingTime, pcb.waitingTime);
-    }
-    else
-        fprintf(file, "At time %d process %d %s arr %d total %d remain %d wait %d TA %d WA %f",
-                atTime,
-                pcb.id,
-                stateToString(pcb.currentState),
-                pcb.arrivalTime,
-                pcb.runningTime,
-                pcb.remainingTime,
-                pcb.waitingTime,
-                pcb.turnAroundTime,
-                /*round*/((pcb.turnAroundTime / (double)pcb.runningTime) * 100) / 100.0f);
+    fprintf(file, "");
     fclose(file);
 }
-
+void writeStats()
+{
+    FILE *file = fopen("Scheduler.log", "a");
+    if (currentRunningProcess.currentState != FINISHED)
+        fprintf(file, "At time %d process %d %s arr %d total %d remain %d wait %d",
+                getClk(), currentRunningProcess.id, stateToString(currentRunningProcess.currentState), currentRunningProcess.arrivalTime, currentRunningProcess.runningTime, currentRunningProcess.remainingTime, currentRunningProcess.waitingTime);
+    else
+        fprintf(file, "At time %d process %d %s arr %d total %d remain %d wait %d TA %d WA %f",
+                getClk(),
+                currentRunningProcess.id,
+                stateToString(currentRunningProcess.currentState),
+                currentRunningProcess.arrivalTime,
+                currentRunningProcess.runningTime,
+                currentRunningProcess.remainingTime,
+                currentRunningProcess.waitingTime,
+                currentRunningProcess.turnAroundTime,
+                round((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f);
+    fprintf(file, "\n");
+    fclose(file);
+}
+void clearResources()
+{
+    destroyClk(true);
+    destroyHeap(q);
+}
+void initResources()
+{
+    initClk();
+    initFile();
+    Qid = msgget(PG_SH_KEY, 0666 | IPC_CREAT);
+    signal(SIGINT, handler);
+    signal(SIGUSR2, handler);
+}
 void handler(int signum)
 {
 
-    printf("USR2");
-    fflush(stdout);
     switch (signum)
     {
     case SIGINT:
-        msgctl(Qid, IPC_RMID, (struct msqid_ds *)0);
-        exit(0);
+        clearResources();
+        exit(-1);
         break;
     case SIGUSR2:
         isRunning = false;
@@ -48,7 +60,9 @@ void handler(int signum)
         currentRunningProcess.finishTime = getClk();
         currentRunningProcess.remainingTime = 0;
         currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
-        writeStats(currentRunningProcess, currentRunningProcess.finishTime);
+        writeStats(currentRunningProcess);
+        waitpid(currentRunningProcess.pid, (int *)0, 0);
+        signal(SIGUSR2, handler);
         break;
     }
 }
@@ -56,41 +70,39 @@ void handler(int signum)
 void HPF()
 {
 
-
-    int remainingProcesses = nprocesses;
-    minHeap *q = createHeap(nprocesses);
-    while (remainingProcesses || isRunning)
+    int remainingProcesses = processesCount;
+    q = createHeap(processesCount);
+    while (remainingProcesses || isRunning || !isHeapEmpty(q))
     {
-
         struct processMsg p;
-        if (msgrcv(Qid, &p, sizeof(p.process), 0, !IPC_NOWAIT) == -1)
+        if (remainingProcesses > 0)
         {
-            perror("error in receiving");
+            if ((msgrcv(Qid, &p, sizeof(p.process), 0, !IPC_NOWAIT) == -1))
+            {
+                perror("error in receiving");
+            }
+            else
+            {
+                remainingProcesses--;
+                PCB pcb;
+                pcb.arrivalTime = p.process.arrival;
+                pcb.id = p.process.id;
+                pcb.priority = p.process.priority;
+                pcb.runningTime = p.process.runtime;
+                pcb.remainingTime = p.process.runtime;
+                pcb.currentState = STOPPED;
+                insertHPF(q, &pcb);
+            }
         }
-        else
+        if (!isRunning && !isHeapEmpty(q))
         {
-            PCB pcb;
-            insertHPF(q, &pcb);
-            remainingProcesses--;
-            pcb.arrivalTime = p.process.arrival;
-            pcb.id = p.process.id;
-            pcb.priority = p.process.priority;
-            pcb.runningTime = p.process.runtime;
-            pcb.remainingTime = p.process.runtime;
-            pcb.currentState = STOPPED;
-        }
-        if (!isRunning)
-        {
-        isRunning = true;
-        struct PCB *pcb = extractHPF(q);
+            isRunning = true;
+            struct PCB *pcb = extractHPF(q);
 
             pcb->waitingTime = getClk() - pcb->arrivalTime;
             pcb->currentState = STARTED;
             pcb->remainingTime = pcb->runningTime;
             pcb->startingTime = getClk();
-            currentRunningProcess = *pcb;
-            writeStats(currentRunningProcess, currentRunningProcess.arrivalTime);
-
             int pid = fork();
             if (pid == -1)
             {
@@ -102,28 +114,36 @@ void HPF()
                 pcb->pid = getpid();
                 char remainingTime[4];
                 sprintf(remainingTime, "%d", pcb->remainingTime);
-                execl("./process.out", "./process.out", remainingProcesses, NULL);
+                execl("./process.out", "process.out", remainingTime, NULL);
                 exit(0);
             }
             pcb->pid = pid;
-       }
+            currentRunningProcess = *pcb;
+            writeStats();
+        }
     }
 }
 
-
-
-
 int main(int argc, char *argv[])
 {
-
-    Qid =msgget(PG_SH_KEY, 0666|IPC_CREAT);
-    signal(SIGINT, handler);
-    signal(SIGUSR2, handler);
-    initClk();
-    nprocesses = 5;
-    HPF();
     // TODO implement the scheduler :)
     // upon termination release the clock resources.
+    initResources();
 
-    // destroyClk(false);
+    int algoNum = atoi(argv[1]);
+    processesCount = atoi(argv[2]);
+    switch (algoNum)
+    {
+    case 1:
+        HPF();
+        break;
+    case 2:
+        // STRN();
+        break;
+    case 3:
+        // RR();
+        break;
+    };
+
+    clearResources();
 }
