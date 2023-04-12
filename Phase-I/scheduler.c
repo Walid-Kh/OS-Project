@@ -64,7 +64,7 @@ void handler(int signum)
             currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
             break;
         case 3:
-            if (currentRunningProcess.remainingTime >= timeSlice)
+            if (currentRunningProcess.remainingTime > timeSlice)
             {
                 currentRunningProcess.currentState = STOPPED;
                 currentRunningProcess.remainingTime -= timeSlice;
@@ -160,7 +160,7 @@ void RR(int tS)
             cqEnqueue(Q, &pcb);
             remainingProcesses--;
         }
-        if (!isRunning)
+        if (!isRunning && !cqIsEmpty(Q))
         {
             isRunning = true;
             cqDequeue(Q, &currentRunningProcess);
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
     signal(SIGUSR2, handler);
     // algoNum = atoi(argv[1]);
     // processesCount = atoi(argv[2]);
-    processesCount = 3;
+    processesCount = 5;
     algoNum = 3;
     switch (3)
     {
@@ -229,7 +229,7 @@ int main(int argc, char *argv[])
         break;
     case 3:
         // timeSlice = atoi(argv[3]);
-        RR(2);
+        RR(10);
         break;
     };
 
