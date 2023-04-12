@@ -1,9 +1,6 @@
 #include "headers.h"
 #include "types.h"
 #include "priorityQueue.h"
-
-
-
 int Qid;
 int nprocesses;
 bool isRunning = false;
