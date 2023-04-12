@@ -75,12 +75,11 @@ int main(int argc, char *argv[])
         char timeSliceStr[3];
 
         sprintf(AlgoNumStr, "%d", algoNum);
-        sprintf(processesCountStr, "%d", q->count);
+        sprintf(processesCountStr, "%d", q->count - 1);
         sprintf(timeSliceStr, "%d", timeSlice);
 
         execl("./scheduler.out", "./scheduler.out", AlgoNumStr, processesCountStr, timeSliceStr, (const char *)0);
-
-        exit(-1);
+        exit(0);
     }
 
     initClk();
@@ -105,6 +104,9 @@ int main(int argc, char *argv[])
             if (send_val == -1)
                 perror("Error in send");
         }
+    }
+    while (1)
+    {
     }
     // 7. Clear clock resources
     // TODO: change later causes seg fault
