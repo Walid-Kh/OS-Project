@@ -144,7 +144,6 @@ void INTERNAL_heapifyUpSTRN(minHeap *heap)
     }
 }
 
-// TODO: Replace with process type (return type)
 struct PCB *extractSTRN(minHeap *heap)
 {
     if (heap->count == 0)
@@ -161,7 +160,6 @@ struct PCB *extractSTRN(minHeap *heap)
     return r1;
 }
 
-// TODO: Replace with process type (item)
 void insertSTRN(minHeap *heap, struct PCB *item)
 {
     if (heap->capacity == heap->count)
@@ -212,7 +210,6 @@ void INTERNAL_heapifyUp(minHeap *heap)
     }
 }
 
-// TODO: Replace with process type (return type)
 int extract(minHeap *heap)
 {
     if (heap->count == 0)
@@ -224,7 +221,7 @@ int extract(minHeap *heap)
     return item;
 }
 
-// TODO: Replace with process type (item)
+// TODO:  with process type (item)
 void insert(minHeap *heap, int item)
 {
     if (heap->capacity == heap->count)

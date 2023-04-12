@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
         char processesCountStr[5];
         char timeSliceStr[3];
 
-        sprintf(algoNum, "%d", AlgoNumStr);
+        sprintf(AlgoNumStr, "%d", algoNum);
         sprintf(processesCountStr, "%d", q->count);
         sprintf(timeSliceStr, "%d", timeSlice);
 

@@ -1,5 +1,6 @@
 #include "headers.h"
 #include "priorityQueue.h"
+
 int Qid;
 int processesCount;
 bool isRunning = false;
@@ -36,14 +37,7 @@ void clearResources()
     destroyClk(true);
     destroyHeap(q);
 }
-void initResources()
-{
-    initClk();
-    initFile();
-    Qid = msgget(PG_SH_KEY, 0666 | IPC_CREAT);
-    signal(SIGINT, handler);
-    signal(SIGUSR2, handler);
-}
+
 void handler(int signum)
 {
 
@@ -65,7 +59,14 @@ void handler(int signum)
         break;
     }
 }
-
+void initResources()
+{
+    initClk();
+    initFile();
+    Qid = msgget(PG_SH_KEY, 0666 | IPC_CREAT);
+    signal(SIGINT, handler);
+    signal(SIGUSR2, handler);
+}
 void HPF()
 {
 
