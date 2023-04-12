@@ -140,11 +140,7 @@ void RR(int tS)
     while (remainingProcesses)
     {
         struct processMsg p;
-        if (msgrcv(Qid, &p, sizeof(p.process), 0, !IPC_NOWAIT) == -1)
-        {
-            perror("Error in recieving");
-        }
-        else
+        while (remainingProcesses > 0 && msgrcv(Qid, &p, sizeof(p.process), 0, IPC_NOWAIT) != -1)
         {
             struct PCB pcb;
             pcb.id = p.process.id;
@@ -187,11 +183,11 @@ void RR(int tS)
             {
                 if (currentRunningProcess.remainingTime >= timeSlice)
                 {
-                    execle("./process.out", "process", timeSlice, (char *)NULL);
+                    execl("./process.out", "process", timeSlice, (char *)NULL);
                 }
                 else
                 {
-                    execle("./process.out", "process", currentRunningProcess.remainingTime, (char *)NULL);
+                    execl("./process.out", "process", currentRunningProcess.remainingTime, (char *)NULL);
                 }
                 exit(0);
             }
@@ -216,10 +212,10 @@ int main(int argc, char *argv[])
     Qid = msgget(PG_SH_KEY, 0666 | IPC_CREAT);
     signal(SIGINT, handler);
     signal(SIGUSR2, handler);
-    int algoNum = atoi(argv[1]);
-    processesCount = atoi(argv[2]);
-    // processesCount = 5;
-    switch (algoNum)
+    // int algoNum = atoi(argv[1]);
+    // processesCount = atoi(argv[2]);
+    processesCount = 3;
+    switch (3)
     {
     case 1:
         HPF();
@@ -228,7 +224,8 @@ int main(int argc, char *argv[])
         // STRN();
         break;
     case 3:
-        // RR();
+        // timeSlice = atoi(argv[3]);
+        RR(2);
         break;
     };
 

@@ -67,20 +67,20 @@ int main(int argc, char *argv[])
         exit(-1);
     }
 
-    schpid = fork();
-    if (schpid == 0)
-    {
-        char AlgoNumStr[2];
-        char processesCountStr[5];
-        char timeSliceStr[3];
+    // schpid = fork();
+    // if (schpid == 0)
+    // {
+    //     char AlgoNumStr[2];
+    //     char processesCountStr[5];
+    //     char timeSliceStr[3];
 
-        sprintf(AlgoNumStr, "%d", algoNum);
-        sprintf(processesCountStr, "%d", q->count - 1);
-        sprintf(timeSliceStr, "%d", timeSlice);
+    //     sprintf(AlgoNumStr, "%d", algoNum);
+    //     sprintf(processesCountStr, "%d", q->count - 1);
+    //     sprintf(timeSliceStr, "%d", timeSlice);
 
-        execl("./scheduler.out", "./scheduler.out", AlgoNumStr, processesCountStr, timeSliceStr, (const char *)0);
-        exit(0);
-    }
+    //     execl("./scheduler.out", "./scheduler.out", AlgoNumStr, processesCountStr, timeSliceStr, (const char *)0);
+    //     exit(0);
+    // }
 
     initClk();
 
