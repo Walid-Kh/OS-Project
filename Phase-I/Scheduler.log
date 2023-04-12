@@ -1,6 +1,5 @@
-At time 2 process 3 started arr 2 total 1 remain 1 wait 0
-At time 3 process 3 finished arr 2 total 1 remain 0 wait 0 TA 1 WA 1.000000
-At time 3 process 2 started arr 2 total 1 remain 1 wait 1
-At time 4 process 2 finished arr 2 total 1 remain 0 wait 1 TA 2 WA 2.000000
-At time 4 process 1 started arr 2 total 1 remain 1 wait 2
-At time 5 process 1 finished arr 2 total 1 remain 0 wait 2 TA 3 WA 3.000000
+At time 3 process 1 started arr 2 total 1 remain 1 wait 1
+At time 4 process 1 finished arr 2 total 1 remain 0 wait 1 TA 2 WA 2.000000
+At time 4 process 2 started arr 2 total 1 remain 1 wait 2
+At time 5 process 2 finished arr 2 total 1 remain 0 wait 2 TA 3 WA 3.000000
+At time 5 process 3 started arr 2 total 1 remain 1 wait 3

@@ -8,6 +8,7 @@ bool isRunning = false;
 struct PCB currentRunningProcess;
 minHeap *q;
 int timeSlice = -1;
+int algoNum;
 
 void initFile()
 {
@@ -52,20 +53,16 @@ void handler(int signum)
         exit(-1);
         break;
     case SIGUSR2:
-
-        if (timeSlice == -1)
+        isRunning = false;
+        switch (algoNum)
         {
-            isRunning = false;
+        case 1:
             currentRunningProcess.currentState = FINISHED;
             currentRunningProcess.finishTime = getClk();
             currentRunningProcess.remainingTime = 0;
             currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
-            writeStats();
-            waitpid(currentRunningProcess.pid, (int *)0, 0);
-            signal(SIGUSR2, handler);
-        }
-        else
-        {
+            break;
+        case 3:
             if (currentRunningProcess.remainingTime >= timeSlice)
             {
                 currentRunningProcess.currentState = STOPPED;
@@ -75,10 +72,14 @@ void handler(int signum)
             {
                 currentRunningProcess.currentState = FINISHED;
                 currentRunningProcess.remainingTime = 0;
-                currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
                 currentRunningProcess.finishTime = getClk();
+                currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
             }
+            break;
         }
+        writeStats();
+        waitpid(currentRunningProcess.pid, (int *)0, 0);
+        signal(SIGUSR2, handler);
         break;
     }
 }
@@ -137,7 +138,7 @@ void RR(int tS)
     struct circularQueue *Q;
     Q = createCircularQueue();
     int remainingProcesses = processesCount;
-    while (remainingProcesses)
+    while (remainingProcesses || !cqIsEmpty(Q))
     {
         struct processMsg p;
         while (remainingProcesses > 0 && msgrcv(Qid, &p, sizeof(p.process), 0, IPC_NOWAIT) != -1)
@@ -171,7 +172,7 @@ void RR(int tS)
                 currentRunningProcess.currentState = RESUMED;
             }
 
-            writeStats(currentRunningProcess, getClk());
+            writeStats();
 
             int pid = fork();
             if (pid == -1)
@@ -183,16 +184,20 @@ void RR(int tS)
             {
                 if (currentRunningProcess.remainingTime >= timeSlice)
                 {
-                    execl("./process.out", "process", timeSlice, (char *)NULL);
+                    char timeSliceStr[4];
+                    sprintf(timeSliceStr, "%d", timeSlice);
+                    execl("./process.out", "process", timeSliceStr, (char *)NULL);
                 }
                 else
                 {
-                    execl("./process.out", "process", currentRunningProcess.remainingTime, (char *)NULL);
+                    char remainingTime[4];
+                    sprintf(remainingTime, "%d", currentRunningProcess.remainingTime);
+                    execl("./process.out", "process", remainingTime, (char *)NULL);
                 }
                 exit(0);
             }
+            currentRunningProcess.pid = pid;
 
-            currentRunningProcess.pid = getpid();
             if ((currentRunningProcess.remainingTime - timeSlice) > 0)
             {
                 cqEnqueue(Q, &currentRunningProcess);
@@ -212,9 +217,10 @@ int main(int argc, char *argv[])
     Qid = msgget(PG_SH_KEY, 0666 | IPC_CREAT);
     signal(SIGINT, handler);
     signal(SIGUSR2, handler);
-    // int algoNum = atoi(argv[1]);
+    // algoNum = atoi(argv[1]);
     // processesCount = atoi(argv[2]);
     processesCount = 3;
+    algoNum = 3;
     switch (3)
     {
     case 1:
@@ -229,5 +235,5 @@ int main(int argc, char *argv[])
         break;
     };
 
-    clearResources();
+    // clearResources();
 }
