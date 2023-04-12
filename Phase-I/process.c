@@ -7,7 +7,6 @@ int main(int agrc, char *argv[])
     // signal(SIGINT, handler);
     initClk();
     remainingtime = atoi(argv[1]);
-    printf("Iam Alive");
     // TODO it needs to get the remaining time from somewhere
     // remainingtime = ??;
     int lastClk = getClk();
@@ -20,9 +19,6 @@ int main(int agrc, char *argv[])
             remainingtime--;
         }
     }
-    printf("Ok");
-    kill(getppid(), SIGUSR2);
-
     destroyClk(false);
 
     return 0;
