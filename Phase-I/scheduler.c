@@ -1,11 +1,14 @@
 #include "headers.h"
 #include "priorityQueue.h"
+#include "circularQueue.h"
 
 int Qid;
 int processesCount;
 bool isRunning = false;
 struct PCB currentRunningProcess;
 minHeap *q;
+int timeSlice = -1;
+
 void initFile()
 {
     FILE *file = fopen("Scheduler.log", "w");
@@ -49,14 +52,33 @@ void handler(int signum)
         exit(-1);
         break;
     case SIGUSR2:
-        isRunning = false;
-        currentRunningProcess.currentState = FINISHED;
-        currentRunningProcess.finishTime = getClk();
-        currentRunningProcess.remainingTime = 0;
-        currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
-        writeStats();
-        waitpid(currentRunningProcess.pid, (int *)0, 0);
-        signal(SIGUSR2, handler);
+
+        if (timeSlice == -1)
+        {
+            isRunning = false;
+            currentRunningProcess.currentState = FINISHED;
+            currentRunningProcess.finishTime = getClk();
+            currentRunningProcess.remainingTime = 0;
+            currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
+            writeStats();
+            waitpid(currentRunningProcess.pid, (int *)0, 0);
+            signal(SIGUSR2, handler);
+        }
+        else
+        {
+            if (currentRunningProcess.remainingTime >= timeSlice)
+            {
+                currentRunningProcess.currentState = STOPPED;
+                currentRunningProcess.remainingTime -= timeSlice;
+            }
+            else
+            {
+                currentRunningProcess.currentState = FINISHED;
+                currentRunningProcess.remainingTime = 0;
+                currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
+                currentRunningProcess.finishTime = getClk();
+            }
+        }
         break;
     }
 }
@@ -105,6 +127,80 @@ void HPF()
                 exit(0);
             }
             currentRunningProcess.pid = pid;
+        }
+    }
+}
+
+void RR(int tS)
+{
+    timeSlice = tS;
+    struct circularQueue *Q;
+    Q = createCircularQueue();
+    int remainingProcesses = processesCount;
+    while (remainingProcesses)
+    {
+        struct processMsg p;
+        if (msgrcv(Qid, &p, sizeof(p.process), 0, !IPC_NOWAIT) == -1)
+        {
+            perror("Error in recieving");
+        }
+        else
+        {
+            struct PCB pcb;
+            pcb.id = p.process.id;
+            pcb.priority = p.process.priority;
+            pcb.arrivalTime = p.process.arrival;
+            pcb.runningTime = p.process.runtime;
+            pcb.remainingTime = p.process.runtime;
+            pcb.startingTime = -1;
+            pcb.waitingTime = -1;
+            pcb.finishTime = -1;
+            pcb.turnAroundTime = -1;
+            pcb.currentState = STOPPED;
+            cqEnqueue(Q, &pcb);
+            remainingProcesses--;
+        }
+        if (!isRunning)
+        {
+            isRunning = true;
+            cqDequeue(Q, &currentRunningProcess);
+            if (currentRunningProcess.startingTime < 0)
+            {
+                currentRunningProcess.startingTime = getClk();
+                currentRunningProcess.currentState = STARTED;
+                currentRunningProcess.waitingTime = getClk() - currentRunningProcess.arrivalTime;
+            }
+            else
+            {
+                currentRunningProcess.currentState = RESUMED;
+            }
+
+            writeStats(currentRunningProcess, getClk());
+
+            int pid = fork();
+            if (pid == -1)
+            {
+                perror("Error in forking");
+                exit(-1);
+            }
+            else if (pid == 0)
+            {
+                if (currentRunningProcess.remainingTime >= timeSlice)
+                {
+                    execle("./process.out", "process", timeSlice, (char *)NULL);
+                }
+                else
+                {
+                    execle("./process.out", "process", currentRunningProcess.remainingTime, (char *)NULL);
+                }
+                exit(0);
+            }
+
+            currentRunningProcess.pid = getpid();
+            if ((currentRunningProcess.remainingTime - timeSlice) > 0)
+            {
+                cqEnqueue(Q, &currentRunningProcess);
+            }
         }
     }
 }
