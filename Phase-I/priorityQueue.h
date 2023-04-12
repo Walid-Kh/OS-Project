@@ -52,7 +52,7 @@ void destroyHeap(minHeap *heap)
 
 // HPF
 
-void INTERNAL_swapHPF(minHeap *heap, int i1, int i2)
+void INTERNAL_swap(minHeap *heap, int i1, int i2)
 {
     PCB temp = heap->arr[i1];
     heap->arr[i1] = heap->arr[i2];
@@ -71,18 +71,18 @@ void INTERNAL_heapifyDownHPF(minHeap *heap)
             break;
         else
         {
-            INTERNAL_swapHPF(heap, index, min);
+            INTERNAL_swap(heap, index, min);
             index = min;
         }
     }
 }
 
-void INTERNAL_heapifyUp(minHeap *heap)
+void INTERNAL_heapifyUpHPF(minHeap *heap)
 {
     int index = heap->count - 1;
     while (index != 0 && heap->arr[index].priority < heap->arr[parent(index)].priority)
     {
-        INTERNAL_swapHPF(heap, index, parent(index));
+        INTERNAL_swap(heap, index, parent(index));
         index = parent(index);
     }
 }
@@ -111,8 +111,66 @@ void insertHPF(minHeap *heap, struct PCB *item)
         return;
     heap->arr[heap->count] = *item;
     heap->count++;
-    INTERNAL_heapifyUp(heap);
+    INTERNAL_heapifyUpHPF(heap);
 }
+
+// STRN
+
+void INTERNAL_heapifyDownSTRN(minHeap *heap)
+{
+    int index = 0;
+    while (INTERNAL_hasLeftChild(heap, index))
+    {
+        int min = Lchild(index);
+        if (INTERNAL_hasRightChild(heap, index) && heap->arr[min].remainingTime > heap->arr[Rchild(index)].remainingTime)
+            min = Rchild(index);
+        if (heap->arr[index].remainingTime <= heap->arr[min].remainingTime)
+            break;
+        else
+        {
+            INTERNAL_swap(heap, index, min);
+            index = min;
+        }
+    }
+}
+
+void INTERNAL_heapifyUpSTRN(minHeap *heap)
+{
+    int index = heap->count - 1;
+    while (index != 0 && heap->arr[index].remainingTime < heap->arr[parent(index)].remainingTime)
+    {
+        INTERNAL_swap(heap, index, parent(index));
+        index = parent(index);
+    }
+}
+
+// TODO: Replace with process type (return type)
+struct PCB *extractSTRN(minHeap *heap)
+{
+    if (heap->count == 0)
+    {
+        struct PCB r = {0, 0, 0, 0, 0, 0, 0, 0};
+        struct PCB *r1 = &r;
+        return r1;
+    }
+    struct PCB item = heap->arr[0];
+    heap->arr[0] = heap->arr[heap->count - 1];
+    heap->count--;
+    INTERNAL_heapifyDownSTRN(heap);
+    struct PCB *r1 = &item;
+    return r1;
+}
+
+// TODO: Replace with process type (item)
+void insertSTRN(minHeap *heap, struct PCB *item)
+{
+    if (heap->capacity == heap->count)
+        return;
+    heap->arr[heap->count] = *item;
+    heap->count++;
+    INTERNAL_heapifyUpSTRN(heap);
+}
+
 
 /* original functions
 void INTERNAL_swap(minHeap *heap, int index, int min)
