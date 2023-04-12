@@ -7,6 +7,7 @@ int processesCount;
 bool isRunning = false;
 struct PCB currentRunningProcess;
 minHeap *q;
+struct circularQueue *Q;
 int timeSlice = -1;
 int algoNum;
 
@@ -67,6 +68,7 @@ void handler(int signum)
             {
                 currentRunningProcess.currentState = STOPPED;
                 currentRunningProcess.remainingTime -= timeSlice;
+                cqEnqueue(Q, &currentRunningProcess);
             }
             else
             {
@@ -75,6 +77,7 @@ void handler(int signum)
                 currentRunningProcess.finishTime = getClk();
                 currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
             }
+
             break;
         }
         writeStats();
@@ -135,10 +138,10 @@ void HPF()
 void RR(int tS)
 {
     timeSlice = tS;
-    struct circularQueue *Q;
     Q = createCircularQueue();
+
     int remainingProcesses = processesCount;
-    while (remainingProcesses || !cqIsEmpty(Q))
+    while (remainingProcesses || !cqIsEmpty(Q) || isRunning)
     {
         struct processMsg p;
         while (remainingProcesses > 0 && msgrcv(Qid, &p, sizeof(p.process), 0, IPC_NOWAIT) != -1)
@@ -197,11 +200,6 @@ void RR(int tS)
                 exit(0);
             }
             currentRunningProcess.pid = pid;
-
-            if ((currentRunningProcess.remainingTime - timeSlice) > 0)
-            {
-                cqEnqueue(Q, &currentRunningProcess);
-            }
         }
     }
 }
