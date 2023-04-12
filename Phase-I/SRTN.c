@@ -1,67 +1,124 @@
 #include "headers.h"
 #include <stdio.h>
 #include "priorityQueue.h"
-#include <test_generator.c>
 minHeap *pq;
 int msgqid;
 bool Finished_Receving = 0; // For Communication With Process Generator To Send Processes Data
-typedef struct processData Process;
-Process *curr_id = 0;
-void IntializeMessage_Queue()
+PCB *curr_Process_pcb = NULL;
+processMes p;
+bool Finished = false;
+void OutputFile(int time)
 {
-    _key_t key;
-    Key = ftok("Keytest.txt", 100);
-    msgqid = msgget(key, 0666 | IPC_CREAT);
-}
-void CheckComingProcess()
-{
-    Process p;
-    int recv_val = msgrcv(msgqid, &p, sizeof(p), 0, IPC_NOWAIT); // Type May Be Added
-                                                                 //   if(Some Sort Of Message To Indicate That Receving Has Finished )
-                                                                 //   Finished_Receving=1;
-    insert(pq, p);                                               // Type of PriorityQueue To Be Modified To Proxess
-}
-void Start_NewProcess(Process *curr)
-{
-
-    int pid = fork();
-    if (pid == -1)
-        printf("Error In Forking") else if (pid == 0)
-        {
-            int t = getClk();
-            curr->startingtime = t;
-            curr->Is_started = 1;
-        }
-    else
+    FILE *file = fopen("Scheduler.log", "w");
+    if (curr_Process_pcb->currentState != FINISHED)
     {
-        curr->id = pid;
+        fprintf(file, "At time %d process %d %s arr %d total %d remain %d wait %d",
+                time, curr_Process_pcb->id, stateToString(curr_Process_pcb->currentState), curr_Process_pcb->arrivalTime, curr_Process_pcb->runningTime, curr_Process_pcb->remainingTime, curr_Process_pcb->waitingTime);
+    }
+    else
+        fprintf(file, "At time %d process %d %s arr %d total %d remain %d wait %d TA %d WA %f",
+                time,
+                curr_Process_pcb->id,
+                stateToString(curr_Process_pcb->currentState),
+                curr_Process_pcb->runningTime,
+                curr_Process_pcb->arrivalTime,
+                curr_Process_pcb->remainingTime,
+                curr_Process_pcb->waitingTime,
+                curr_Process_pcb->turnAroundTime,
+                /*round*/ ((curr_Process_pcb->turnAroundTime / (double)curr_Process_pcb->runningTime) * 100) / 100.0f);
+    fclose(file);
+}
+void handler(int signum)
+{
+    switch (signum)
+    {
+    case SIGINT:
+        msgctl(msgqid, IPC_RMID, (struct msqid_ds *)0);
+        exit(0);
+        break;
+    case SIGUSR2:
+        curr_Process_pcb->currentState = FINISHED;
+        curr_Process_pcb->finishTime = getClk();
+        curr_Process_pcb->remainingTime = 0;
+        curr_Process_pcb->turnAroundTime = curr_Process_pcb->finishTime - curr_Process_pcb->arrivalTime;
+        // OutputFile(curr_Process_pcb->finishTime);
+        printf("Insiede Handler");
+        fflush(stdout);
+        curr_Process_pcb = NULL;
+        break;
     }
 }
-void Begin_SRTN() // Function To Be Called By Process_Generator
+void IntializeMessage_Queue()
+{
+    // __key_t key;
+    // key = ftok("Keytest.txt", 100);
+    msgqid = msgget(PG_SH_KEY, 0666 | IPC_CREAT);
+}
+void Begin_SRTN(int numofprocess) // Function To Be Called By Process_Generator
 {
     IntializeMessage_Queue();
-    while (pq->count > 0 || !Finished_Receving)
+    int num = numofprocess;
+    pq = createHeap(num);
+    PCB *curr = malloc(sizeof(PCB));
+    while (pq->count > 0 || !Finished)
     {
-        if (!Finished_Receving)
-            CheckComingProcess();
-        if (pq->count)
+        bool received_now = false;
+        if (num > 0)
         {
-            // Peek Function Not Extract
-            Process *procs = Peek(pq);
-            if (curr_id == 0) // No Running Process
+            int recv_val = msgrcv(msgqid, &p, sizeof(p.process), 0, IPC_NOWAIT);
+            if (recv_val == -1)
+                printf("Erorr in Receiving");
+            else
             {
-                if (!procs->Is_started)
-                {
-                    procs = extract(pq);
-                    Start_NewProcess(procs);
-                }
-                else
-                { 
-                    //Load Its State And Continue Process
-                }
+                num--;
+                received_now = true;
+                curr->arrivalTime = p.process.arrival;
+                curr->id = p.process.id;
+                curr->priority = p.process.priority;
+                curr->runningTime = p.process.runtime;
+                curr->remainingTime = curr->runningTime;
+                curr->waitingTime = 0;
+                if (curr_Process_pcb == NULL || p.process.runtime >= curr_Process_pcb->remainingTime)
+                    insertHPF(pq, curr);
             }
-            else // There Is Already Currrent Running Process
+        }
+        else
+            Finished = true;
+        if (curr_Process_pcb != NULL && received_now && curr_Process_pcb->remainingTime > p.process.runtime)
+        {
+            kill(curr_Process_pcb->pid, SIGINT);
+            int p = getClk() - curr_Process_pcb->startingTime;
+            curr_Process_pcb->remainingTime = curr_Process_pcb->runningTime - p;
+            curr_Process_pcb->currentState = STOPPED;
+            insertHPF(pq, curr_Process_pcb);
+            curr_Process_pcb = NULL;
+        }
+        if (curr_Process_pcb == NULL)
+        {
+            PCB *go = extractHPF(pq);
+            // Logic Of The Algorithm
+            if (go->remainingTime != go->runningTime) // Meant That This Is Preempted Process
             {
+                go->currentState = RESUMED;
+                // Waiting Time
+            }
+            go->currentState = STARTED;
+            go->startingTime = getClk();
+            curr_Process_pcb = go;
+            int pid = fork();
+            if (pid == -1)
+                printf("Error In Forking");
+            else if (pid == 0)
+            {
+                printf("In");
+                execl("./process.out", "./process.out", go->runningTime, NULL);
+                printf("OUt");
+                kill(getppid(), SIGUSR2);
+                exit(0);
+            }
+            else
+            {
+                go->pid = pid;
             }
         }
     }
@@ -69,4 +126,10 @@ void Begin_SRTN() // Function To Be Called By Process_Generator
 int main()
 {
     printf("Hello Iam Manga");
+    signal(SIGINT, handler);
+    signal(SIGUSR2, handler);
+    initClk();
+    printf("Iam Started At time=%d", getClk());
+    Begin_SRTN(5);
+    printf("\nIam Finished At time=%d", getClk());
 }
