@@ -4,13 +4,12 @@
 
 int Qid;
 int processesCount;
-bool isRunning = true;
+bool isRunning = false;
 struct PCB currentRunningProcess;
 minHeap *q;
 struct circularQueue *Q;
 int timeSlice = -1;
 int algoNum;
-bool IS_Running = false;
 void initFile()
 {
     FILE *file = fopen("Scheduler.log", "w");
@@ -33,7 +32,7 @@ void writeStats()
                 currentRunningProcess.remainingTime,
                 currentRunningProcess.waitingTime,
                 currentRunningProcess.turnAroundTime,
-                ((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f);
+                round((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f);
     fprintf(file, "\n");
     fclose(file);
 }
@@ -54,8 +53,7 @@ void handler(int signum)
         exit(-1);
         break;
     case SIGUSR2:
-        isRunning = true;
-        IS_Running = false;
+        isRunning = false;
         switch (algoNum)
         {
         case 1:
@@ -147,7 +145,7 @@ void Begin_SRTN(int numofprocess)
 {
     int num = numofprocess;
     pq = createHeap(numofprocess);
-    while (num > 0 || pq->count > 0 || IS_Running)
+    while (num > 0 || pq->count > 0 || isRunning)
     {
         bool received_now = false;
         if (num > 0)
@@ -166,7 +164,7 @@ void Begin_SRTN(int numofprocess)
                 insertSTRN(pq, &curr);
             }
         }
-        if (IS_Running == true && received_now)
+        if (isRunning == true && received_now)
         {
             int t = getClk() - currentRunningProcess.startingTime;
             currentRunningProcess.remainingTime = currentRunningProcess.runningTime - t;
@@ -178,13 +176,13 @@ void Begin_SRTN(int numofprocess)
                 currentRunningProcess.currentState = STOPPED;
                 writeStats();
                 insertSTRN(pq, &currentRunningProcess);
-                IS_Running = false;
+                isRunning = false;
             }
         }
-        if (IS_Running == false && pq->count > 0)
+        if (isRunning == false && pq->count > 0)
         {
             PCB *go = extractSTRN(pq);
-            IS_Running = true;                        // Logic Of The Algorithm
+            isRunning = true;                         // Logic Of The Algorithm
             if (go->remainingTime != go->runningTime) // Meant That This Is Preempted Process
             {
                 go->currentState = RESUMED;
@@ -292,10 +290,10 @@ int main(int argc, char *argv[])
     Qid = msgget(PG_SH_KEY, 0666 | IPC_CREAT);
     signal(SIGINT, handler);
     signal(SIGUSR2, handler);
-    // algoNum = atoi(argv[1]);
-    // processesCount = atoi(argv[2]);
-    processesCount = 5;
-    algoNum = 2;
+    algoNum = atoi(argv[1]);
+    processesCount = atoi(argv[2]);
+    // processesCount = 5;
+    // algoNum = 2;
     switch (algoNum)
     {
     case 1:
@@ -305,10 +303,13 @@ int main(int argc, char *argv[])
         Begin_SRTN(5);
         break;
     case 3:
-        // timeSlice = atoi(argv[3]);
-        RR(10);
+        timeSlice = atoi(argv[3]);
+        RR(timeSlice);
         break;
     };
 
+    destroyClk(false);
+    kill(getppid(), SIGINT);
+    return 0;
     // clearResources();
 }

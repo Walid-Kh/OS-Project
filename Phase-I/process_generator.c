@@ -78,6 +78,7 @@ int main(int argc, char *argv[])
         sprintf(processesCountStr, "%d", q->count - 1);
         sprintf(timeSliceStr, "%d", timeSlice);
         execl("./scheduler.out", "./scheduler.out", AlgoNumStr, processesCountStr, timeSliceStr, (const char *)0);
+        exit(0);
     }
     initClk();
 
@@ -107,7 +108,7 @@ int main(int argc, char *argv[])
     }
     // 7. Clear clock resources
     // TODO: change later causes seg fault
-    //  destroyClk(true);
+    // destroyClk(true);
     // clearResources(9);
 }
 
