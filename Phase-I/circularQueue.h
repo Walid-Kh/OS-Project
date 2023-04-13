@@ -4,20 +4,22 @@
 #include "types.h"
 
 // Todo make MAX_SIZE is dynamic
-#define MAX_SIZE 5
+int MAX_SIZE;
 
 typedef struct circularQueue
 {
     int front;
     int back;
-    struct PCB arr[MAX_SIZE];
+    struct PCB *arr;
     int size;
 } circularQueue;
 
-struct circularQueue *createCircularQueue()
+struct circularQueue *createCircularQueue(int s)
 {
+    MAX_SIZE = s;
     struct circularQueue *q;
     q = (struct circularQueue *)malloc(sizeof(circularQueue));
+    q->arr = (struct PCB *)malloc(sizeof(PCB) * MAX_SIZE);
     q->back = 0;
     q->front = 0;
     q->size = 0;
@@ -74,4 +76,10 @@ bool cqPeek(struct circularQueue *q, struct PCB *p)
     }
     *p = q->arr[q->front];
     return true;
+}
+
+void destroyCQ(struct circularQueue *q)
+{
+    free(q->arr);
+    free(q);
 }

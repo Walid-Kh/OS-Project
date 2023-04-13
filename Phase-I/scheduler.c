@@ -10,6 +10,8 @@ minHeap *q;
 struct circularQueue *Q;
 int timeSlice = -1;
 int algoNum;
+minHeap *pq;
+
 void initFile()
 {
     FILE *file = fopen("Scheduler.log", "w");
@@ -39,7 +41,19 @@ void writeStats()
 void clearResources()
 {
     destroyClk(true);
-    destroyHeap(q);
+    switch (algoNum)
+    {
+    case 1:
+        destroyHeap(q);
+        break;
+    case 2:
+        destroyHeap(pq);
+        break;
+    case 3:
+        destroyCQ(Q);
+        break;
+    }
+
     kill(getppid(), SIGINT);
 }
 
@@ -138,8 +152,6 @@ void HPF()
         }
     }
 }
-minHeap *pq;
-int msgqid;
 processMes p;
 void Begin_SRTN(int numofprocess)
 {
@@ -213,7 +225,7 @@ void Begin_SRTN(int numofprocess)
 void RR(int tS)
 {
     timeSlice = tS;
-    Q = createCircularQueue();
+    Q = createCircularQueue(processesCount);
 
     int remainingProcesses = processesCount;
     while (remainingProcesses || !cqIsEmpty(Q) || isRunning)
