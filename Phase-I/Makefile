@@ -4,6 +4,7 @@ build:
 	gcc scheduler.c -o scheduler.out -lm
 	gcc process.c -o process.out
 	gcc test_generator.c -o test_generator.out
+	gcc SRTN.c -o SRTN.out
 
 
 clean:

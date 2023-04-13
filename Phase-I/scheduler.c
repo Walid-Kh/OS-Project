@@ -4,17 +4,17 @@
 
 int Qid;
 int processesCount;
-bool isRunning = false;
+bool isRunning = true;
 struct PCB currentRunningProcess;
 minHeap *q;
 struct circularQueue *Q;
 int timeSlice = -1;
 int algoNum;
-
+bool IS_Running = false;
 void initFile()
 {
     FILE *file = fopen("Scheduler.log", "w");
-    fprintf(file, "");
+    // fprintf(file,"");
     fclose(file);
 }
 void writeStats()
@@ -33,7 +33,7 @@ void writeStats()
                 currentRunningProcess.remainingTime,
                 currentRunningProcess.waitingTime,
                 currentRunningProcess.turnAroundTime,
-                round((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f);
+                ((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f);
     fprintf(file, "\n");
     fclose(file);
 }
@@ -54,7 +54,8 @@ void handler(int signum)
         exit(-1);
         break;
     case SIGUSR2:
-        isRunning = false;
+        isRunning = true;
+        IS_Running = false;
         switch (algoNum)
         {
         case 1:
@@ -77,7 +78,12 @@ void handler(int signum)
                 currentRunningProcess.finishTime = getClk();
                 currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
             }
-
+            break;
+        case 2:
+            currentRunningProcess.currentState = FINISHED;
+            currentRunningProcess.finishTime = getClk();
+            currentRunningProcess.remainingTime = 0;
+            currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
             break;
         }
         writeStats();
@@ -134,7 +140,78 @@ void HPF()
         }
     }
 }
-
+minHeap *pq;
+int msgqid;
+processMes p;
+void Begin_SRTN(int numofprocess)
+{
+    int num = numofprocess;
+    pq = createHeap(numofprocess);
+    while (num > 0 || pq->count > 0 || IS_Running)
+    {
+        bool received_now = false;
+        if (num > 0)
+        {
+            int recv_val = msgrcv(Qid, &p, sizeof(p.process), 0, IPC_NOWAIT);
+            if (recv_val != -1)
+            {
+                struct PCB curr;
+                num--;
+                received_now = true;
+                curr.arrivalTime = p.process.arrival;
+                curr.id = p.process.id;
+                curr.priority = p.process.priority;
+                curr.runningTime = p.process.runtime;
+                curr.remainingTime = curr.runningTime;
+                insertSTRN(pq, &curr);
+            }
+        }
+        if (IS_Running == true && received_now)
+        {
+            int t = getClk() - currentRunningProcess.startingTime;
+            currentRunningProcess.remainingTime = currentRunningProcess.runningTime - t;
+            if (currentRunningProcess.remainingTime > p.process.runtime)
+            {
+                kill(currentRunningProcess.pid, SIGINT);
+                //   printf("process Preempted With id=%d", currentRunningProcess.pid);
+                //    printf(" Process With Id=%d Preempted At%d=\n", currentRunningProcess.id, getClk());
+                currentRunningProcess.currentState = STOPPED;
+                writeStats();
+                insertSTRN(pq, &currentRunningProcess);
+                IS_Running = false;
+            }
+        }
+        if (IS_Running == false && pq->count > 0)
+        {
+            PCB *go = extractSTRN(pq);
+            IS_Running = true;                        // Logic Of The Algorithm
+            if (go->remainingTime != go->runningTime) // Meant That This Is Preempted Process
+            {
+                go->currentState = RESUMED;
+            }
+            else
+            {
+                go->startingTime = getClk();
+                go->currentState = STARTED;
+                go->waitingTime = getClk() - go->arrivalTime;
+            }
+            currentRunningProcess = *go;
+            writeStats();
+            int pid = fork();
+            if (pid == 0)
+            {
+                char remainingTime[4];
+                sprintf(remainingTime, "%d", currentRunningProcess.remainingTime);
+                execl("./process.out", "./process.out", remainingTime, NULL);
+                exit(0);
+            }
+            else
+            {
+                currentRunningProcess.pid = pid;
+            }
+        }
+    }
+}
 void RR(int tS)
 {
     timeSlice = tS;
@@ -218,14 +295,14 @@ int main(int argc, char *argv[])
     // algoNum = atoi(argv[1]);
     // processesCount = atoi(argv[2]);
     processesCount = 5;
-    algoNum = 3;
-    switch (3)
+    algoNum = 2;
+    switch (algoNum)
     {
     case 1:
         HPF();
         break;
     case 2:
-        // STRN();
+        Begin_SRTN(5);
         break;
     case 3:
         // timeSlice = atoi(argv[3]);
