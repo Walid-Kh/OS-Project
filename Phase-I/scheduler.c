@@ -11,7 +11,7 @@ struct circularQueue *Q;
 int timeSlice = -1;
 int algoNum;
 minHeap *pq;
-
+processMes p;
 void initFile()
 {
     FILE *file = fopen("Scheduler.log", "w");
@@ -152,29 +152,25 @@ void HPF()
         }
     }
 }
-processMes p;
-void Begin_SRTN(int numofprocess)
+void SRTN()
 {
-    int num = numofprocess;
-    pq = createHeap(numofprocess);
+    int num = processesCount;
+    pq = createHeap(num);
     while (num > 0 || pq->count > 0 || isRunning)
     {
+       // printf("num is%d\n count is%d\nis running=%d\n", num, pq->count, isRunning);
         bool received_now = false;
-        if (num > 0)
+        while (num > 0 && msgrcv(Qid, &p, sizeof(p.process), 0, IPC_NOWAIT) != -1)
         {
-            int recv_val = msgrcv(Qid, &p, sizeof(p.process), 0, IPC_NOWAIT);
-            if (recv_val != -1)
-            {
-                struct PCB curr;
-                num--;
-                received_now = true;
-                curr.arrivalTime = p.process.arrival;
-                curr.id = p.process.id;
-                curr.priority = p.process.priority;
-                curr.runningTime = p.process.runtime;
-                curr.remainingTime = curr.runningTime;
-                insertSTRN(pq, &curr);
-            }
+            struct PCB *curr;
+            num--;
+            received_now = true;
+            curr->arrivalTime = p.process.arrival;
+            curr->id = p.process.id;
+            curr->priority = p.process.priority;
+            curr->runningTime = p.process.runtime;
+            curr->remainingTime = curr->runningTime;
+            insertSTRN(pq, curr);
         }
         if (isRunning == true && received_now)
         {
@@ -304,22 +300,24 @@ int main(int argc, char *argv[])
     signal(SIGUSR2, handler);
     algoNum = atoi(argv[1]);
     processesCount = atoi(argv[2]);
+      printf("Num Is=%d", processesCount); // WarningNumber Is Coming Reduced By One
+  //  processesCount += 1;
     // processesCount = 5;
     // algoNum = 2;
+      fflush(stdout);
     switch (algoNum)
     {
     case 1:
         HPF();
         break;
     case 2:
-        Begin_SRTN(5);
+        SRTN();
         break;
     case 3:
         timeSlice = atoi(argv[3]);
         RR(timeSlice);
         break;
     };
-
     destroyClk(false);
     kill(getppid(), SIGINT);
     return 0;
