@@ -13,26 +13,21 @@ int algoNum;
 minHeap *pq;
 processMes p;
 
-
-float avgWTA=0;
-float avgWaiting=0;
-float* WTAarr;  // using in std calc
-int arrcount=0;
-float totalTime=0;
-float totalRunningtime=0;
-
-
-
+float avgWTA = 0;
+float avgWaiting = 0;
+float *WTAarr; // using in std calc
+int arrcount = 0;
+float totalTime = 0;
+float totalRunningtime = 0;
 
 void initFile()
 {
     FILE *file = fopen("Scheduler.log", "w");
     // fprintf(file,"");
     fclose(file);
-    file= fopen("scheduler.perf", "w");
+    file = fopen("scheduler.perf", "w");
     fclose(file);
 }
-
 
 void writeStats()
 {
@@ -75,17 +70,17 @@ void clearResources()
 void writePerf()
 {
     FILE *file = fopen("scheduler.perf", "w");
-    float uti =(totalRunningtime/totalTime)*100;
-    fprintf(file, "CPU utilization = %f %% \n",uti);
-    fprintf(file,"Avg WTA = %f \n",avgWTA/processesCount);
-    fprintf(file,"Avg Waiting = %f \n",avgWaiting/processesCount);
-    //calc Std
-    float std =0;
+    float uti = (totalRunningtime / totalTime) * 100;
+    fprintf(file, "CPU utilization = %f %% \n", uti);
+    fprintf(file, "Avg WTA = %f \n", avgWTA / processesCount);
+    fprintf(file, "Avg Waiting = %f \n", avgWaiting / processesCount);
+    // calc Std
+    float std = 0;
     for (int i = 0; i < processesCount; ++i)
-        std+= pow((WTAarr[i]-(avgWTA/processesCount)),2);
-    std=sqrt(std/(processesCount-1));
+        std += pow((WTAarr[i] - (avgWTA / processesCount)), 2);
+    std = sqrt(std / (processesCount - 1));
 
-    fprintf(file,"Std WTA = %f",std);
+    fprintf(file, "Std WTA = %f", std);
 
     fclose(file);
 }
@@ -131,8 +126,8 @@ void handler(int signum)
             currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
             break;
         }
-        WTAarr[arrcount]= round((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f;
-        avgWTA +=WTAarr[arrcount++];
+        WTAarr[arrcount] = round((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f;
+        avgWTA += WTAarr[arrcount++];
         writeStats();
         waitpid(currentRunningProcess.pid, (int *)0, 0);
         signal(SIGUSR2, handler);
@@ -158,7 +153,7 @@ void HPF()
             pcb.runningTime = p.process.runtime;
             pcb.remainingTime = p.process.runtime;
             pcb.currentState = STOPPED;
-            totalRunningtime+=pcb.runningTime;
+            totalRunningtime += pcb.runningTime;
             insertHPF(q, &pcb);
         }
         if (!isRunning && !isHeapEmpty(q))
@@ -171,7 +166,7 @@ void HPF()
             pcb->remainingTime = pcb->runningTime;
             pcb->startingTime = getClk();
             currentRunningProcess = *pcb;
-            avgWaiting+=currentRunningProcess.waitingTime;
+            avgWaiting += currentRunningProcess.waitingTime;
             writeStats();
             int pid = fork();
             if (pid == -1)
@@ -196,20 +191,20 @@ void SRTN()
     pq = createHeap(num);
     while (num > 0 || pq->count > 0 || isRunning)
     {
-       // printf("num is%d\n count is%d\nis running=%d\n", num, pq->count, isRunning);
+        // printf("num is%d\n count is%d\nis running=%d\n", num, pq->count, isRunning);
         bool received_now = false;
         while (num > 0 && msgrcv(Qid, &p, sizeof(p.process), 0, IPC_NOWAIT) != -1)
         {
-            struct PCB *curr;
+            struct PCB curr;
             num--;
             received_now = true;
-            curr->arrivalTime = p.process.arrival;
-            curr->id = p.process.id;
-            curr->priority = p.process.priority;
-            curr->runningTime = p.process.runtime;
-            curr->remainingTime = curr->runningTime;
-            totalRunningtime+=curr->runningTime;
-            insertSTRN(pq, curr);
+            curr.arrivalTime = p.process.arrival;
+            curr.id = p.process.id;
+            curr.priority = p.process.priority;
+            curr.runningTime = p.process.runtime;
+            curr.remainingTime = curr.runningTime;
+            totalRunningtime += curr.runningTime;
+            insertSTRN(pq, &curr);
         }
         if (isRunning == true && received_now)
         {
@@ -217,7 +212,7 @@ void SRTN()
             currentRunningProcess.remainingTime = currentRunningProcess.runningTime - t;
             if (currentRunningProcess.remainingTime > p.process.runtime)
             {
-                kill(currentRunningProcess.pid, SIGINT);
+                kill(currentRunningProcess.pid, SIGSTOP);
                 //   printf("process Preempted With id=%d", currentRunningProcess.pid);
                 //    printf(" Process With Id=%d Preempted At%d=\n", currentRunningProcess.id, getClk());
                 currentRunningProcess.currentState = STOPPED;
@@ -239,21 +234,26 @@ void SRTN()
                 go->startingTime = getClk();
                 go->currentState = STARTED;
                 go->waitingTime = getClk() - go->arrivalTime;
-                avgWaiting+=go->waitingTime;
+                avgWaiting += go->waitingTime;
             }
             currentRunningProcess = *go;
             writeStats();
-            int pid = fork();
-            if (pid == 0)
-            {
-                char remainingTime[4];
-                sprintf(remainingTime, "%d", currentRunningProcess.remainingTime);
-                execl("./process.out", "./process.out", remainingTime, NULL);
-                exit(0);
-            }
+            if (currentRunningProcess.remainingTime != currentRunningProcess.runningTime)
+                kill(currentRunningProcess.pid, SIGCONT);
             else
             {
-                currentRunningProcess.pid = pid;
+                int pid = fork();
+                if (pid == 0)
+                {
+                    char remainingTime[4];
+                    sprintf(remainingTime, "%d", currentRunningProcess.remainingTime);
+                    execl("./process.out", "./process.out", remainingTime, NULL);
+                    exit(0);
+                }
+                else
+                {
+                    currentRunningProcess.pid = pid;
+                }
             }
         }
     }
@@ -280,7 +280,7 @@ void RR(int tS)
             pcb.finishTime = -1;
             pcb.turnAroundTime = -1;
             pcb.currentState = STOPPED;
-            totalRunningtime+=pcb.runningTime;
+            totalRunningtime += pcb.runningTime;
             cqEnqueue(Q, &pcb);
             remainingProcesses--;
         }
@@ -293,7 +293,7 @@ void RR(int tS)
                 currentRunningProcess.startingTime = getClk();
                 currentRunningProcess.currentState = STARTED;
                 currentRunningProcess.waitingTime = getClk() - currentRunningProcess.arrivalTime;
-                avgWaiting+=currentRunningProcess.waitingTime;
+                avgWaiting += currentRunningProcess.waitingTime;
             }
             else
             {
@@ -342,13 +342,12 @@ int main(int argc, char *argv[])
     signal(SIGUSR2, handler);
     algoNum = atoi(argv[1]);
     processesCount = atoi(argv[2]);
-    WTAarr=(float*) malloc(processesCount*sizeof(float)); //the array of  WTA
-
+    WTAarr = (float *)malloc(processesCount * sizeof(float)); // the array of  WTA
     printf("Num Is=%d", processesCount);
-  //  processesCount += 1;
-    // processesCount = 5;
+    //  processesCount += 1;
+    // processesCount = 2;
     // algoNum = 2;
-      fflush(stdout);
+    fflush(stdout);
     switch (algoNum)
     {
     case 1:
@@ -362,8 +361,9 @@ int main(int argc, char *argv[])
         RR(timeSlice);
         break;
     };
-    totalTime=getClk();
+    totalTime = getClk();
     writePerf();
+    free(WTAarr);
     destroyClk(false);
     kill(getppid(), SIGINT);
     return 0;
