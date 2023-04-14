@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
         char timeSliceStr[3];
 
         sprintf(AlgoNumStr, "%d", algoNum);
-        sprintf(processesCountStr, "%d", q->count - 1);
+        sprintf(processesCountStr, "%d", q->count);
         sprintf(timeSliceStr, "%d", timeSlice);
         execl("./scheduler.out", "./scheduler.out", AlgoNumStr, processesCountStr, timeSliceStr, (const char *)0);
         exit(0);

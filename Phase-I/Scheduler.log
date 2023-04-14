@@ -1,8 +1,30 @@
-At time 2 process 1 started arr 2 total 3 remain 3 wait 0
-At time 5 process 1 finished arr 2 total 3 remain 0 wait 0 TA 3 WA 1.000000
-At time 5 process 2 started arr 2 total 1 remain 1 wait 3
-At time 6 process 2 finished arr 2 total 1 remain 0 wait 3 TA 4 WA 4.000000
-At time 6 process 3 started arr 2 total 6 remain 6 wait 4
-At time 12 process 3 finished arr 2 total 6 remain 0 wait 4 TA 10 WA 1.670000
-At time 12 process 4 started arr 2 total 4 remain 4 wait 10
-At time 16 process 4 finished arr 2 total 4 remain 0 wait 10 TA 14 WA 3.500000
+At time 11 process 1 started arr 11 total 3 remain 3 wait 0
+At time 14 process 1 finished arr 11 total 3 remain 0 wait 0 TA 3 WA 1.000000
+At time 17 process 2 started arr 17 total 6 remain 6 wait 0
+At time 22 process 2 stopped arr 17 total 6 remain 1 wait 0
+At time 22 process 2 resumed arr 17 total 6 remain 1 wait 0
+At time 23 process 2 finished arr 17 total 6 remain 0 wait 0 TA 6 WA 1.000000
+At time 27 process 3 started arr 27 total 5 remain 5 wait 0
+At time 32 process 3 finished arr 27 total 5 remain 0 wait 0 TA 5 WA 1.000000
+At time 32 process 4 started arr 29 total 17 remain 17 wait 3
+At time 37 process 4 stopped arr 29 total 17 remain 12 wait 3
+At time 37 process 4 resumed arr 29 total 17 remain 12 wait 3
+At time 42 process 4 stopped arr 29 total 17 remain 7 wait 3
+At time 42 process 5 started arr 38 total 16 remain 16 wait 4
+At time 47 process 5 stopped arr 38 total 16 remain 11 wait 4
+At time 47 process 4 resumed arr 29 total 17 remain 7 wait 3
+At time 52 process 4 stopped arr 29 total 17 remain 2 wait 3
+At time 52 process 6 started arr 45 total 14 remain 14 wait 7
+At time 57 process 6 stopped arr 45 total 14 remain 9 wait 7
+At time 57 process 5 resumed arr 38 total 16 remain 11 wait 4
+At time 62 process 5 stopped arr 38 total 16 remain 6 wait 4
+At time 62 process 4 resumed arr 29 total 17 remain 2 wait 3
+At time 64 process 4 finished arr 29 total 17 remain 0 wait 3 TA 35 WA 2.060000
+At time 64 process 6 resumed arr 45 total 14 remain 9 wait 7
+At time 69 process 6 stopped arr 45 total 14 remain 4 wait 7
+At time 69 process 5 resumed arr 38 total 16 remain 6 wait 4
+At time 74 process 5 stopped arr 38 total 16 remain 1 wait 4
+At time 74 process 6 resumed arr 45 total 14 remain 4 wait 7
+At time 78 process 6 finished arr 45 total 14 remain 0 wait 7 TA 33 WA 2.360000
+At time 78 process 5 resumed arr 38 total 16 remain 1 wait 4
+At time 79 process 5 finished arr 38 total 16 remain 0 wait 4 TA 41 WA 2.560000
