@@ -1,16 +1,29 @@
+#define _XOPEN_SOURCE 700
 #include "headers.h"
 
 /* Modify this file as needed*/
 int remainingtime;
+int lastClk;
 
-int main(int agrc, char *argv[])
+void handler(int signum)
+{
+    lastClk = getClk();
+    signal(SIGCONT, handler);
+}
+
+int main(int argc, char *argv[])
 {
     initClk();
     remainingtime = atoi(argv[1]);
 
+    struct sigaction act;
+    act.sa_handler = handler;
+
+    sigaction(SIGCONT, &act, NULL);
+
     // TODO it needs to get the remaining time from somewhere
     // remainingtime = ??;
-    int lastClk = getClk();
+    lastClk = getClk();
     while (remainingtime > 0)
     {
         int currentTime = getClk();

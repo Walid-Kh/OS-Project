@@ -7,11 +7,13 @@ int processesCount;
 bool isRunning = false;
 struct PCB currentRunningProcess;
 minHeap *q;
-struct circularQueue *Q;
-int timeSlice = -1;
 int algoNum;
 minHeap *pq;
 processMes p;
+
+struct circularQueue *Q;
+int timeSlice = -1;
+int sliceStartTime;
 
 float avgWTA = 0;
 float avgWaiting = 0;
@@ -96,36 +98,12 @@ void handler(int signum)
         break;
     case SIGUSR2:
         isRunning = false;
-        switch (algoNum)
-        {
-        case 1:
-            currentRunningProcess.currentState = FINISHED;
-            currentRunningProcess.finishTime = getClk();
-            currentRunningProcess.remainingTime = 0;
-            currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
-            break;
-        case 3:
-            if (currentRunningProcess.remainingTime > timeSlice)
-            {
-                currentRunningProcess.currentState = STOPPED;
-                currentRunningProcess.remainingTime -= timeSlice;
-                cqEnqueue(Q, &currentRunningProcess);
-            }
-            else
-            {
-                currentRunningProcess.currentState = FINISHED;
-                currentRunningProcess.remainingTime = 0;
-                currentRunningProcess.finishTime = getClk();
-                currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
-            }
-            break;
-        case 2:
-            currentRunningProcess.currentState = FINISHED;
-            currentRunningProcess.finishTime = getClk();
-            currentRunningProcess.remainingTime = 0;
-            currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
-            break;
-        }
+
+        currentRunningProcess.currentState = FINISHED;
+        currentRunningProcess.finishTime = getClk();
+        currentRunningProcess.remainingTime = 0;
+        currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
+
         WTAarr[arrcount] = round((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f;
         avgWTA += WTAarr[arrcount++];
         writeStats();
@@ -284,6 +262,18 @@ void RR(int tS)
             cqEnqueue(Q, &pcb);
             remainingProcesses--;
         }
+        if (isRunning && (getClk() - sliceStartTime >= timeSlice))
+        {
+            if (currentRunningProcess.remainingTime > timeSlice)
+            {
+                isRunning = false;
+                kill(currentRunningProcess.pid, SIGSTOP);
+                currentRunningProcess.currentState = STOPPED;
+                currentRunningProcess.remainingTime -= timeSlice;
+                cqEnqueue(Q, &currentRunningProcess);
+                writeStats();
+            }
+        }
         if (!isRunning && !cqIsEmpty(Q))
         {
             isRunning = true;
@@ -302,29 +292,29 @@ void RR(int tS)
 
             writeStats();
 
-            int pid = fork();
-            if (pid == -1)
+            if (currentRunningProcess.currentState == STARTED)
             {
-                perror("Error in forking");
-                exit(-1);
-            }
-            else if (pid == 0)
-            {
-                if (currentRunningProcess.remainingTime >= timeSlice)
+                int pid = fork();
+                if (pid == -1)
                 {
-                    char timeSliceStr[4];
-                    sprintf(timeSliceStr, "%d", timeSlice);
-                    execl("./process.out", "process", timeSliceStr, (char *)NULL);
+                    perror("Error in forking");
+                    exit(-1);
                 }
-                else
+                else if (pid == 0)
                 {
                     char remainingTime[4];
                     sprintf(remainingTime, "%d", currentRunningProcess.remainingTime);
                     execl("./process.out", "process", remainingTime, (char *)NULL);
+                    exit(0);
                 }
-                exit(0);
+                sliceStartTime = getClk();
+                currentRunningProcess.pid = pid;
             }
-            currentRunningProcess.pid = pid;
+            else
+            {
+                sliceStartTime = getClk();
+                kill(currentRunningProcess.pid, SIGCONT);
+            }
         }
     }
 }
@@ -340,13 +330,12 @@ int main(int argc, char *argv[])
     Qid = msgget(PG_SH_KEY, 0666 | IPC_CREAT);
     signal(SIGINT, handler);
     signal(SIGUSR2, handler);
-    algoNum = atoi(argv[1]);
+    // processesCount = 6;
+    // // algoNum = 3;
     processesCount = atoi(argv[2]);
+    algoNum = atoi(argv[1]);
     WTAarr = (float *)malloc(processesCount * sizeof(float)); // the array of  WTA
     printf("Num Is=%d", processesCount);
-    //  processesCount += 1;
-    // processesCount = 2;
-    // algoNum = 2;
     fflush(stdout);
     switch (algoNum)
     {
@@ -358,6 +347,7 @@ int main(int argc, char *argv[])
         break;
     case 3:
         timeSlice = atoi(argv[3]);
+        // timeSlice = 3;
         RR(timeSlice);
         break;
     };
