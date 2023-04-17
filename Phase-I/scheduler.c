@@ -8,8 +8,14 @@ bool isRunning = false;
 struct PCB currentRunningProcess;
 minHeap *q;
 int algoNum;
+int policy;
 minHeap *pq;
 processMes p;
+
+
+int memory [1024]={0}; // zero mean that the location is free/ id means that the process with this id take this location
+
+
 
 struct circularQueue *Q;
 int timeSlice = -1;
@@ -27,8 +33,13 @@ void initFile()
     FILE *file = fopen("Scheduler.log", "w");
     // fprintf(file,"");
     fclose(file);
+
     file = fopen("scheduler.perf", "w");
     fclose(file);
+
+    file = fopen("memory.log", "w");  //memory.log
+    fclose(file);
+
 }
 
 void writeStats()
@@ -47,7 +58,8 @@ void writeStats()
                 currentRunningProcess.remainingTime,
                 currentRunningProcess.waitingTime,
                 currentRunningProcess.turnAroundTime,
-                round((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f);
+               // round
+                ((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f);
     fprintf(file, "\n");
     fclose(file);
 }
@@ -79,12 +91,80 @@ void writePerf()
     // calc Std
     float std = 0;
     for (int i = 0; i < processesCount; ++i)
-        std += pow((WTAarr[i] - (avgWTA / processesCount)), 2);
-    std = sqrt(std / (processesCount - 1));
+       // std += pow((WTAarr[i] - (avgWTA / processesCount)), 2);
+    //std = sqrt(std / (processesCount - 1));
 
     fprintf(file, "Std WTA = %f", std);
 
     fclose(file);
+}
+void writeMemory(int start){
+
+    FILE *file = fopen("memory.log", "a");
+    fprintf(file,"At time %d allocated %d bytes for process %d from %d to %d\n",
+            getClk(),
+            currentRunningProcess.memsize,
+            currentRunningProcess.id,
+            start,
+            start+currentRunningProcess.memsize-1);
+
+    fclose(file);
+
+}
+void freeMemory(int start){
+    FILE *file = fopen("memory.log", "a");
+    fprintf(file,"At time %d freed %d bytes for process %d from %d to %d\n",
+            getClk(),
+            currentRunningProcess.memsize,
+            currentRunningProcess.id,
+            start,
+            start+currentRunningProcess.memsize-1);
+
+    fclose(file);
+}
+void allocate (){
+
+    int id =currentRunningProcess.id;
+    int size=currentRunningProcess.memsize;
+    int i,j;
+    bool flag =true;
+
+    for ( i = 0; i < 1024; ++i) {
+        if (memory[i]==0)  // first location available
+        {
+            for (j = i; j < size; ++j) { // check if there enough size
+                if(memory[j] != 0)
+                {
+                    flag=false;
+                    break;
+                }
+            }
+            if(!flag) i=j;                         // there is not enough size
+            else {                                   // enough size
+                for (int k = i; k < size+i; ++k)
+                    memory[k] = id;
+                writeMemory(i);
+                break;
+            }
+        }
+    }
+
+
+}
+void deallocate(){
+
+    int id =currentRunningProcess.id;
+    int size=currentRunningProcess.memsize;
+    int i=0;
+
+    while(memory[i]!=id)
+        i++;
+    freeMemory(i);
+    for (int j = i; j <size; ++j)
+        memory[j]=0;
+
+
+
 }
 
 void handler(int signum)
@@ -104,9 +184,10 @@ void handler(int signum)
         currentRunningProcess.remainingTime = 0;
         currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
 
-        WTAarr[arrcount] = round((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f;
+        WTAarr[arrcount] = /*round*/((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f;
         avgWTA += WTAarr[arrcount++];
         writeStats();
+        deallocate();
         waitpid(currentRunningProcess.pid, (int *)0, 0);
         signal(SIGUSR2, handler);
         break;
@@ -131,6 +212,7 @@ void HPF()
             pcb.runningTime = p.process.runtime;
             pcb.remainingTime = p.process.runtime;
             pcb.currentState = STOPPED;
+            pcb.memsize=p.process.memsize;
             totalRunningtime += pcb.runningTime;
             insertHPF(q, &pcb);
         }
@@ -145,6 +227,7 @@ void HPF()
             pcb->startingTime = getClk();
             currentRunningProcess = *pcb;
             avgWaiting += currentRunningProcess.waitingTime;
+            allocate();
             writeStats();
             int pid = fork();
             if (pid == -1)
@@ -163,6 +246,7 @@ void HPF()
         }
     }
 }
+
 void SRTN()
 {
     int num = processesCount;
@@ -181,6 +265,7 @@ void SRTN()
             curr.priority = p.process.priority;
             curr.runningTime = p.process.runtime;
             curr.remainingTime = curr.runningTime;
+           // curr.memsize=p.process.memsize;
             totalRunningtime += curr.runningTime;
             insertSTRN(pq, &curr);
         }
@@ -216,10 +301,12 @@ void SRTN()
             }
             currentRunningProcess = *go;
             writeStats();
-            if (currentRunningProcess.remainingTime != currentRunningProcess.runningTime)
+            if (currentRunningProcess.remainingTime != currentRunningProcess.runningTime) {
                 kill(currentRunningProcess.pid, SIGCONT);
+            }
             else
             {
+               // allocate();
                 int pid = fork();
                 if (pid == 0)
                 {
@@ -236,6 +323,8 @@ void SRTN()
         }
     }
 }
+
+
 void RR(int tS)
 {
     timeSlice = tS;
@@ -258,6 +347,7 @@ void RR(int tS)
             pcb.finishTime = -1;
             pcb.turnAroundTime = -1;
             pcb.currentState = STOPPED;
+            pcb.memsize=p.process.memsize;
             totalRunningtime += pcb.runningTime;
             cqEnqueue(Q, &pcb);
             remainingProcesses--;
@@ -284,6 +374,7 @@ void RR(int tS)
                 currentRunningProcess.currentState = STARTED;
                 currentRunningProcess.waitingTime = getClk() - currentRunningProcess.arrivalTime;
                 avgWaiting += currentRunningProcess.waitingTime;
+                allocate();
             }
             else
             {
@@ -330,12 +421,15 @@ int main(int argc, char *argv[])
     Qid = msgget(PG_SH_KEY, 0666 | IPC_CREAT);
     signal(SIGINT, handler);
     signal(SIGUSR2, handler);
-    // processesCount = 6;
-    // // algoNum = 3;
-    processesCount = atoi(argv[2]);
-    algoNum = atoi(argv[1]);
+     processesCount = 5;
+     algoNum = 2;
+  //  processesCount = atoi(argv[2]);
+    //algoNum = atoi(argv[1]);
+    //policy=atoi(argv[4]);
+
     WTAarr = (float *)malloc(processesCount * sizeof(float)); // the array of  WTA
-    printf("Num Is=%d", processesCount);
+    printf("Num Is=%d \n", processesCount);
+   // printf("the policy %d",policy);
     fflush(stdout);
     switch (algoNum)
     {

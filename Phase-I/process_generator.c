@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
     signal(SIGINT, clearResources);
     // TODO Initialization
     // 1. Read the input files. (done)
-    char line[30];
+    char line[50];
     FILE *fp;
     fp = fopen("processes.txt", "r"); // Open processes.txt
     fgets(line, sizeof(line), fp);    // Get first line and ignore it
@@ -29,6 +29,8 @@ int main(int argc, char *argv[])
         p.runtime = z;
         fscanf(fp, "%d", &z); // priority
         p.priority = z;
+        fscanf(fp, "%d", &z); // memory size
+        p.memsize = z;
 
         enqueue(q, &p); // there is a error here
     }
@@ -48,6 +50,14 @@ int main(int argc, char *argv[])
         while (timeSlice <= 0)
             scanf("%d", &timeSlice);
     }
+    printf("======Which allocation policies do you want?=====\n");
+    printf("1. First Fit.\n");
+    printf("2. Buddy System.\n");
+    printf("======Enter the policy number=====\n");
+    int policy;
+    scanf("%d", &policy);
+
+
     //=======================send the selected algorithm to scheduler.c==================
     int send_val;
 
@@ -66,20 +76,24 @@ int main(int argc, char *argv[])
         execl("./clk.out", "./build/clk.out", NULL);
         exit(-1);
     }
-
+/*
     schpid = fork();
     if (schpid == 0)
     {
         char AlgoNumStr[2];
         char processesCountStr[5];
         char timeSliceStr[3];
+        char policyStr[2];
 
         sprintf(AlgoNumStr, "%d", algoNum);
         sprintf(processesCountStr, "%d", q->count);
         sprintf(timeSliceStr, "%d", timeSlice);
-        execl("./scheduler.out", "./scheduler.out", AlgoNumStr, processesCountStr, timeSliceStr, (const char *)0);
+        sprintf(policyStr,"%d",policy);
+
+        execl("./scheduler.out", "./scheduler.out", AlgoNumStr, processesCountStr, timeSliceStr,policyStr,(const char *)0);
         exit(0);
     }
+    */
     initClk();
 
     // 4. Use this function after creating the clock process to initialize clock
