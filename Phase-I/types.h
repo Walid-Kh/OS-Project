@@ -20,7 +20,7 @@ typedef struct PCB
     int remainingTime; // decremented by algorithm when it's worked on initially = runningTime
     int waitingTime;   // Time
     int finishTime;
-    int turnAroundTime; 
+    int turnAroundTime;
     state currentState; // started finished resumed stopped
 } PCB;
 typedef struct process
@@ -36,5 +36,10 @@ typedef struct processMsg // message structure of process
     long mtype;
     struct process process;
 } processMes;
-
+typedef struct Map // message structure of process
+{
+    int start;
+    int end;
+    bool ocuupied;
+} Map;
 #endif

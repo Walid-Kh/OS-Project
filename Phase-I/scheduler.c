@@ -12,10 +12,7 @@ int policy;
 minHeap *pq;
 processMes p;
 
-
-int memory [1024]={0}; // zero mean that the location is free/ id means that the process with this id take this location
-
-
+int memory[1024] = {0}; // zero mean that the location is free/ id means that the process with this id take this location
 
 struct circularQueue *Q;
 int timeSlice = -1;
@@ -27,7 +24,6 @@ float *WTAarr; // using in std calc
 int arrcount = 0;
 float totalTime = 0;
 float totalRunningtime = 0;
-
 void initFile()
 {
     FILE *file = fopen("Scheduler.log", "w");
@@ -37,11 +33,9 @@ void initFile()
     file = fopen("scheduler.perf", "w");
     fclose(file);
 
-    file = fopen("memory.log", "w");  //memory.log
+    file = fopen("memory.log", "w"); // memory.log
     fclose(file);
-
 }
-
 void writeStats()
 {
     FILE *file = fopen("Scheduler.log", "a");
@@ -58,7 +52,7 @@ void writeStats()
                 currentRunningProcess.remainingTime,
                 currentRunningProcess.waitingTime,
                 currentRunningProcess.turnAroundTime,
-               // round
+                // round
                 ((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f);
     fprintf(file, "\n");
     fclose(file);
@@ -91,82 +85,83 @@ void writePerf()
     // calc Std
     float std = 0;
     for (int i = 0; i < processesCount; ++i)
-       // std += pow((WTAarr[i] - (avgWTA / processesCount)), 2);
-    //std = sqrt(std / (processesCount - 1));
+        // std += pow((WTAarr[i] - (avgWTA / processesCount)), 2);
+        // std = sqrt(std / (processesCount - 1));
 
-    fprintf(file, "Std WTA = %f", std);
+        fprintf(file, "Std WTA = %f", std);
 
     fclose(file);
 }
-void writeMemory(int start){
+void writeMemory(int start)
+{
 
     FILE *file = fopen("memory.log", "a");
-    fprintf(file,"At time %d allocated %d bytes for process %d from %d to %d\n",
+    fprintf(file, "At time %d allocated %d bytes for process %d from %d to %d\n",
             getClk(),
             currentRunningProcess.memsize,
             currentRunningProcess.id,
             start,
-            start+currentRunningProcess.memsize-1);
+            start + currentRunningProcess.memsize - 1);
 
     fclose(file);
-
 }
-void freeMemory(int start){
+void freeMemory(int start)
+{
     FILE *file = fopen("memory.log", "a");
-    fprintf(file,"At time %d freed %d bytes for process %d from %d to %d\n",
+    fprintf(file, "At time %d freed %d bytes for process %d from %d to %d\n",
             getClk(),
             currentRunningProcess.memsize,
             currentRunningProcess.id,
             start,
-            start+currentRunningProcess.memsize-1);
+            start + currentRunningProcess.memsize - 1);
 
     fclose(file);
 }
-void allocate (){
+void allocate()
+{
 
-    int id =currentRunningProcess.id;
-    int size=currentRunningProcess.memsize;
-    int i,j;
-    bool flag =true;
+    int id = currentRunningProcess.id;
+    int size = currentRunningProcess.memsize;
+    int i, j;
+    bool flag = true;
 
-    for ( i = 0; i < 1024; ++i) {
-        if (memory[i]==0)  // first location available
+    for (i = 0; i < 1024; ++i)
+    {
+        if (memory[i] == 0) // first location available
         {
-            for (j = i; j < size; ++j) { // check if there enough size
-                if(memory[j] != 0)
+            for (j = i; j < size; ++j)
+            { // check if there enough size
+                if (memory[j] != 0)
                 {
-                    flag=false;
+                    flag = false;
                     break;
                 }
             }
-            if(!flag) i=j;                         // there is not enough size
-            else {                                   // enough size
-                for (int k = i; k < size+i; ++k)
+            if (!flag)
+                i = j; // there is not enough size
+            else
+            { // enough size
+                for (int k = i; k < size + i; ++k)
                     memory[k] = id;
                 writeMemory(i);
                 break;
             }
         }
     }
-
-
 }
-void deallocate(){
+void deallocate()
+{
 
-    int id =currentRunningProcess.id;
-    int size=currentRunningProcess.memsize;
-    int i=0;
+    int id = currentRunningProcess.id;
+    int size = currentRunningProcess.memsize;
+    int i = 0;
 
-    while(memory[i]!=id)
+    while (memory[i] != id)
         i++;
     freeMemory(i);
-    for (int j = i; j <size; ++j)
-        memory[j]=0;
-
-
-
+    for (int j = i; j < i + size; ++j)
+        memory[j] = 0;
 }
-
 void handler(int signum)
 {
 
@@ -184,7 +179,7 @@ void handler(int signum)
         currentRunningProcess.remainingTime = 0;
         currentRunningProcess.turnAroundTime = currentRunningProcess.finishTime - currentRunningProcess.arrivalTime;
 
-        WTAarr[arrcount] = /*round*/((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f;
+        WTAarr[arrcount] = /*round*/ ((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f;
         avgWTA += WTAarr[arrcount++];
         writeStats();
         deallocate();
@@ -212,7 +207,7 @@ void HPF()
             pcb.runningTime = p.process.runtime;
             pcb.remainingTime = p.process.runtime;
             pcb.currentState = STOPPED;
-            pcb.memsize=p.process.memsize;
+            pcb.memsize = p.process.memsize;
             totalRunningtime += pcb.runningTime;
             insertHPF(q, &pcb);
         }
@@ -265,7 +260,7 @@ void SRTN()
             curr.priority = p.process.priority;
             curr.runningTime = p.process.runtime;
             curr.remainingTime = curr.runningTime;
-           // curr.memsize=p.process.memsize;
+            curr.memsize = p.process.memsize;
             totalRunningtime += curr.runningTime;
             insertSTRN(pq, &curr);
         }
@@ -301,12 +296,13 @@ void SRTN()
             }
             currentRunningProcess = *go;
             writeStats();
-            if (currentRunningProcess.remainingTime != currentRunningProcess.runningTime) {
+            if (currentRunningProcess.remainingTime != currentRunningProcess.runningTime)
+            {
                 kill(currentRunningProcess.pid, SIGCONT);
             }
             else
             {
-               // allocate();
+                allocate();
                 int pid = fork();
                 if (pid == 0)
                 {
@@ -323,7 +319,6 @@ void SRTN()
         }
     }
 }
-
 
 void RR(int tS)
 {
@@ -347,7 +342,7 @@ void RR(int tS)
             pcb.finishTime = -1;
             pcb.turnAroundTime = -1;
             pcb.currentState = STOPPED;
-            pcb.memsize=p.process.memsize;
+            pcb.memsize = p.process.memsize;
             totalRunningtime += pcb.runningTime;
             cqEnqueue(Q, &pcb);
             remainingProcesses--;
@@ -421,15 +416,15 @@ int main(int argc, char *argv[])
     Qid = msgget(PG_SH_KEY, 0666 | IPC_CREAT);
     signal(SIGINT, handler);
     signal(SIGUSR2, handler);
-     processesCount = 5;
-     algoNum = 2;
-  //  processesCount = atoi(argv[2]);
-    //algoNum = atoi(argv[1]);
-    //policy=atoi(argv[4]);
+    //  processesCount = 5;
+    //  algoNum = 2;
+    processesCount = atoi(argv[2]);
+    algoNum = atoi(argv[1]);
+    policy = atoi(argv[4]);
 
     WTAarr = (float *)malloc(processesCount * sizeof(float)); // the array of  WTA
     printf("Num Is=%d \n", processesCount);
-   // printf("the policy %d",policy);
+    printf("the policy %d", policy);
     fflush(stdout);
     switch (algoNum)
     {

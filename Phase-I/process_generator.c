@@ -76,7 +76,6 @@ int main(int argc, char *argv[])
         execl("./clk.out", "./build/clk.out", NULL);
         exit(-1);
     }
-/*
     schpid = fork();
     if (schpid == 0)
     {
@@ -93,7 +92,6 @@ int main(int argc, char *argv[])
         execl("./scheduler.out", "./scheduler.out", AlgoNumStr, processesCountStr, timeSliceStr,policyStr,(const char *)0);
         exit(0);
     }
-    */
     initClk();
 
     // 4. Use this function after creating the clock process to initialize clock
