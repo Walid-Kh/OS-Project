@@ -11,19 +11,35 @@ int algoNum;
 int policy;
 minHeap *pq;
 processMes p;
-
 int memory[1024] = {0}; // zero mean that the location is free/ id means that the process with this id take this location
-
+int count = 1;
 struct circularQueue *Q;
 int timeSlice = -1;
 int sliceStartTime;
-
 float avgWTA = 0;
 float avgWaiting = 0;
 float *WTAarr; // using in std calc
 int arrcount = 0;
 float totalTime = 0;
 float totalRunningtime = 0;
+void intiallization()
+{
+    if (policy == 1)
+        return;
+    for (int i = 0; i < 1024; i++)
+        memory[i] = -1 * count;
+    count++;
+}
+bool IsPower(int n)
+{
+    if (n == 1)
+        return false;
+    int cnt = 0;
+    for (int i = 0; i < 11; i++)
+        if (n & (1 << i))
+            cnt++;
+    return (cnt == 1);
+}
 void initFile()
 {
     FILE *file = fopen("Scheduler.log", "w");
@@ -94,7 +110,6 @@ void writePerf()
 }
 void writeMemory(int start)
 {
-
     FILE *file = fopen("memory.log", "a");
     fprintf(file, "At time %d allocated %d bytes for process %d from %d to %d\n",
             getClk(),
@@ -105,62 +120,199 @@ void writeMemory(int start)
 
     fclose(file);
 }
-void freeMemory(int start)
+void freeMemory(int start, int size)
 {
-    FILE *file = fopen("memory.log", "a");
-    fprintf(file, "At time %d freed %d bytes for process %d from %d to %d\n",
-            getClk(),
-            currentRunningProcess.memsize,
-            currentRunningProcess.id,
-            start,
-            start + currentRunningProcess.memsize - 1);
 
+    FILE *file = fopen("memory.log", "a");
+    if (size != currentRunningProcess.memsize)
+        fprintf(file, "At time %d Bytes From %d To %d Was Combined\n", getClk(), start, start + size);
+    else
+    {
+        fprintf(file, "At Time %d Freed %d Bytes For Process %d From %d To %d\n",
+                getClk(),
+                size,
+                currentRunningProcess.id,
+                start,
+                start + size - 1);
+    }
     fclose(file);
 }
 void allocate()
 {
-
-    int id = currentRunningProcess.id;
-    int size = currentRunningProcess.memsize;
-    int i, j;
-    bool flag = true;
-
-    for (i = 0; i < 1024; ++i)
+    switch (policy)
     {
-        if (memory[i] == 0) // first location available
+    case 1:
+        int id = currentRunningProcess.id;
+        int size = currentRunningProcess.memsize;
+        int i, j;
+        bool flag = true;
+        for (i = 0; i < 1024; ++i)
         {
-            for (j = i; j < size; ++j)
-            { // check if there enough size
-                if (memory[j] != 0)
-                {
-                    flag = false;
+            if (memory[i] == 0) // first location available
+            {
+                for (j = i; j < size; ++j)
+                { // check if there enough size
+                    if (memory[j] != 0)
+                    {
+                        flag = false;
+                        break;
+                    }
+                }
+                if (!flag)
+                    i = j; // there is not enough size
+                else
+                { // enough size
+                    for (int k = i; k < size + i; ++k)
+                        memory[k] = id;
+                    writeMemory(i);
                     break;
                 }
             }
-            if (!flag)
-                i = j; // there is not enough size
-            else
-            { // enough size
-                for (int k = i; k < size + i; ++k)
-                    memory[k] = id;
-                writeMemory(i);
-                break;
+        }
+        break;
+    case 2:
+        int sz = currentRunningProcess.memsize;
+        int mask = 0;
+        while ((1 << mask) < sz)
+            mask++;
+        int go = 1 << mask;
+        i = 0;
+        int cnt = 1e5; // Size of the segement to be assigned
+        int s;         // Start of that Segement
+        for (; i < 1024; i++)
+        {
+            int cnt2 = 0;
+            int s2 = i;
+            while (i < 1023 && memory[i] < 0 && memory[i + 1] == memory[i])
+                i++, cnt2++;
+            if (cnt2 + 1 >= sz && cnt2 + 1 < cnt)
+            {
+                cnt = cnt2;
+                s = s2;
             }
         }
+        currentRunningProcess.memsize = 1 << mask;
+        currentRunningProcess.memstart = s;
+        j = s;
+        int ok = 0;
+        int mul = -1;
+        i = s + cnt + 1;
+        while (j < i)
+        {
+            for (int k = 0; k < go; j++, k++)
+            {
+                if (!ok)
+                    memory[j] = currentRunningProcess.id;
+                else
+                    memory[j] = mul * count;
+            }
+            if (ok)
+                count++;
+            ok++;
+            if (ok > 1)
+            {
+                mask++;
+                go = 1 << mask;
+            }
+        }
+        writeMemory(currentRunningProcess.memstart);
+        break;
+    default:
+        break;
     }
 }
 void deallocate()
 {
-
     int id = currentRunningProcess.id;
-    int size = currentRunningProcess.memsize;
+    int sz = currentRunningProcess.memsize;
     int i = 0;
-
-    while (memory[i] != id)
-        i++;
-    freeMemory(i);
-    for (int j = i; j < i + size; ++j)
-        memory[j] = 0;
+    int s = currentRunningProcess.memstart;
+    switch (policy)
+    {
+    case 1:
+        while (memory[i] != id)
+            i++;
+        freeMemory(i, currentRunningProcess.memsize);
+        for (int j = i; j < i + sz; ++j)
+            memory[j] = 0;
+        break;
+    case 2:
+        for (int i = s; i < s + sz; i++)
+            memory[i] = -1 * count;
+        freeMemory(s, sz);
+        bool f = true;
+        while (f)
+        {
+            f = false;
+            int tmp = sz;
+            int mask = 0;
+            while (tmp >> 1)
+            {
+                mask++;
+                tmp = tmp >> 1;
+            }
+            bool l = false, r = false;
+            if (s - sz < 0)
+                r = true;
+            if (s + sz + 1 > 1024)
+                l = true;
+            // try to merge with left
+            if (!l && !r && (IsPower(sz + s) || IsPower(1024 - (s - sz))))
+                l = true; // go left
+            // try to merge with right
+            if (!l && !r && (IsPower(s + 2 * sz) || IsPower(1024 - s)))
+                r = true; // go right
+        /*/    if (l && r)
+            {
+                printf("Impossible");
+            }*/
+            if (l)
+            {
+                f = true;
+                int idx = s;
+                for (int i = 0; i < sz; i++, idx--)
+                    if (memory[idx] > 0 || memory[idx] != memory[idx])
+                    {
+                        f = false;
+                        break;
+                    }
+                if (f)
+                {
+                    idx = s - 1;
+                    for (int i = 0; i < sz; i++, idx--)
+                        memory[idx] = -1 * count;
+                    s -= sz;
+                    mask++;
+                    sz = 1 << mask;
+                    freeMemory(s, sz);
+                }
+            }
+            else
+            {
+                int idx = s + sz;
+                f = true;
+                for (int i = 0; i < sz; i++, idx++)
+                    if (memory[idx] > 0 || memory[idx] != memory[idx])
+                    {
+                        f = false;
+                        break;
+                    }
+                if (f)
+                {
+                    idx = s + sz;
+                    for (int i = 0; i < sz; i++, idx++)
+                        memory[idx] = -1 * count;
+                    mask++;
+                    sz = 1 << mask;
+                    freeMemory(s, sz);
+                }
+            }
+        }
+        count += 1;
+        break;
+    default:
+        break;
+    }
 }
 void handler(int signum)
 {
@@ -421,8 +573,8 @@ int main(int argc, char *argv[])
     processesCount = atoi(argv[2]);
     algoNum = atoi(argv[1]);
     policy = atoi(argv[4]);
-
-    WTAarr = (float *)malloc(processesCount * sizeof(float)); // the array of  WTA
+    WTAarr = (float *)malloc(processesCount * sizeof(float));
+    intiallization(); // the array of  WTA
     printf("Num Is=%d \n", processesCount);
     printf("the policy %d", policy);
     fflush(stdout);
