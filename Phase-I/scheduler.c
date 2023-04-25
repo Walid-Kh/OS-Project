@@ -101,10 +101,10 @@ void writePerf()
     // calc Std
     float std = 0;
     for (int i = 0; i < processesCount; ++i)
-        // std += pow((WTAarr[i] - (avgWTA / processesCount)), 2);
-        // std = sqrt(std / (processesCount - 1));
+        std += pow((WTAarr[i] - (avgWTA / processesCount)), 2);
+    std = sqrt(std / (processesCount - 1));
 
-        fprintf(file, "Std WTA = %f", std);
+    fprintf(file, "Std WTA = %f", std);
 
     fclose(file);
 }
@@ -262,10 +262,10 @@ void deallocate()
             // try to merge with right
             if (!l && !r && (IsPower(s + 2 * sz) || IsPower(1024 - s)))
                 r = true; // go right
-        /*/    if (l && r)
-            {
-                printf("Impossible");
-            }*/
+                          /*/    if (l && r)
+                              {
+                                  printf("Impossible");
+                              }*/
             if (l)
             {
                 f = true;
