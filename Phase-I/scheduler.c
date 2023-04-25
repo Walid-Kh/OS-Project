@@ -55,11 +55,15 @@ void initFile()
 void writeStats()
 {
     FILE *file = fopen("Scheduler.log", "a");
+    double WTA;
+    if (currentRunningProcess.runningTime != 0)
+        WTA = round((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f;
     if (currentRunningProcess.currentState != FINISHED)
         fprintf(file, "At time %d process %d %s arr %d total %d remain %d wait %d",
                 getClk(), currentRunningProcess.id, stateToString(currentRunningProcess.currentState), currentRunningProcess.arrivalTime, currentRunningProcess.runningTime, currentRunningProcess.remainingTime, currentRunningProcess.waitingTime);
     else
-        fprintf(file, "At time %d process %d %s arr %d total %d remain %d wait %d TA %d WA %f",
+    {
+        fprintf(file, "At time %d process %d %s arr %d total %d remain %d wait %d TA %d",
                 getClk(),
                 currentRunningProcess.id,
                 stateToString(currentRunningProcess.currentState),
@@ -67,9 +71,12 @@ void writeStats()
                 currentRunningProcess.runningTime,
                 currentRunningProcess.remainingTime,
                 currentRunningProcess.waitingTime,
-                currentRunningProcess.turnAroundTime,
-                // round
-                ((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f);
+                currentRunningProcess.turnAroundTime);
+        if (currentRunningProcess.runningTime == 0)
+            fprintf(file, " WA Undefined value");
+        else
+            fprintf(file, " WA %f ", WTA);
+    }
     fprintf(file, "\n");
     fclose(file);
 }
@@ -137,7 +144,7 @@ void freeMemory(int start, int size)
     }
     fclose(file);
 }
-void allocate()
+bool allocate()
 {
     switch (policy)
     {
@@ -145,6 +152,7 @@ void allocate()
         int id = currentRunningProcess.id;
         int size = currentRunningProcess.memsize;
         int i, j;
+        bool reserved = false;
         bool flag = true;
         for (i = 0; i < 1024; ++i)
         {
@@ -165,10 +173,12 @@ void allocate()
                     for (int k = i; k < size + i; ++k)
                         memory[k] = id;
                     writeMemory(i);
+                    reserved = true;
                     break;
                 }
             }
         }
+        return reserved;
         break;
     case 2:
         int sz = currentRunningProcess.memsize;
@@ -191,6 +201,8 @@ void allocate()
                 s = s2;
             }
         }
+        if (cnt == 1e5)
+            return false;
         currentRunningProcess.memsize = 1 << mask;
         currentRunningProcess.memstart = s;
         j = s;
@@ -216,6 +228,7 @@ void allocate()
             }
         }
         writeMemory(currentRunningProcess.memstart);
+        return true;
         break;
     default:
         break;
@@ -420,6 +433,7 @@ void SRTN()
         {
             int t = getClk() - currentRunningProcess.startingTime;
             currentRunningProcess.remainingTime = currentRunningProcess.runningTime - t;
+            currentRunningProcess.preemptedTime = getClk();
             if (currentRunningProcess.remainingTime > p.process.runtime)
             {
                 kill(currentRunningProcess.pid, SIGSTOP);
@@ -434,6 +448,13 @@ void SRTN()
         if (isRunning == false && pq->count > 0)
         {
             PCB *go = extractSTRN(pq);
+            /*/  if (!allocate())
+              {
+                  insertSTRN(pq,go);
+                  printf("Not Enought Memory");
+                  fflush(stdout);
+                  continue;
+              }*/
             isRunning = true;                         // Logic Of The Algorithm
             if (go->remainingTime != go->runningTime) // Meant That This Is Preempted Process
             {
@@ -447,13 +468,15 @@ void SRTN()
                 avgWaiting += go->waitingTime;
             }
             currentRunningProcess = *go;
-            writeStats();
             if (currentRunningProcess.remainingTime != currentRunningProcess.runningTime)
             {
+                currentRunningProcess.waitingTime += getClk() - currentRunningProcess.preemptedTime;
                 kill(currentRunningProcess.pid, SIGCONT);
+                writeStats();
             }
             else
             {
+                writeStats();
                 allocate();
                 int pid = fork();
                 if (pid == 0)
@@ -507,6 +530,7 @@ void RR(int tS)
                 kill(currentRunningProcess.pid, SIGSTOP);
                 currentRunningProcess.currentState = STOPPED;
                 currentRunningProcess.remainingTime -= timeSlice;
+                currentRunningProcess.preemptedTime = getClk();
                 cqEnqueue(Q, &currentRunningProcess);
                 writeStats();
             }
@@ -526,10 +550,9 @@ void RR(int tS)
             else
             {
                 currentRunningProcess.currentState = RESUMED;
+                currentRunningProcess.waitingTime += getClk() - currentRunningProcess.preemptedTime;
             }
-
             writeStats();
-
             if (currentRunningProcess.currentState == STARTED)
             {
                 int pid = fork();
