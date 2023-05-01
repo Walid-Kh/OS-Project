@@ -156,6 +156,8 @@ bool allocate(int size, int id, int type)
         {
             if (memory[i] == 0) // first location available
             {
+                if (i + size >= 1024)
+                    return false;
                 for (j = i; j < size; ++j)
                 { // check if there enough size
                     if (memory[j] != 0)
@@ -253,7 +255,11 @@ void deallocate()
     case 1:
         while (memory[i] != id)
             i++;
+        printf("Error Before And i=%d", i);
+        fflush(stdout);
         freeMemory(i, currentRunningProcess.memsize);
+        printf("Error After And i=%d", i);
+        fflush(stdout);
         for (int j = i; j < i + sz; ++j)
             memory[j] = 0;
         break;
@@ -357,7 +363,9 @@ void handler(int signum)
         printf("Ok Iam Finished with Id=%d\n", currentRunningProcess.id);
         fflush(stdout);
         writeStats();
-        deallocate();
+        printf("Are You Crazy");
+        fflush(stdout);
+         deallocate();
         waitpid(currentRunningProcess.pid, (int *)0, 0);
         signal(SIGUSR2, handler);
         break;
@@ -479,9 +487,9 @@ void SRTN()
             }
             while (!cqIsEmpty(q))
             {
-                PCB *till;
-                cqDequeue(q, till);
-                insertSTRN(pq, till);
+                PCB till;
+                cqDequeue(q, &till);
+                insertSTRN(pq, &till);
             }
             // tmp queue  pop till you find an process can run now or already preempted
             // while()
@@ -558,28 +566,41 @@ void RR(int tS)
         {
             if (currentRunningProcess.remainingTime > timeSlice)
             {
-                PCB *tmp = NULL;
-                cqPeek(Q, tmp);
-                if (tmp != NULL && tmp->remainingTime == tmp->runningTime && !allocate(tmp->memsize, tmp->id, 1))
+                PCB tmp;
+                cqPeek(Q, &tmp);
+                if (tmp.remainingTime != tmp.runningTime)
                 {
-                    printf("Ok");
-                    fflush(stdout);
-                    cqDequeue(Q, tmp);
-                    cqEnqueue(Q, tmp);
-                    continue;
+                    isRunning = false;
+                    kill(currentRunningProcess.pid, SIGSTOP);
+                    currentRunningProcess.currentState = STOPPED;
+                    currentRunningProcess.remainingTime -= timeSlice;
+                    currentRunningProcess.preemptedTime = getClk();
+                    cqEnqueue(Q, &currentRunningProcess);
+                    writeStats();
                 }
-                isRunning = false;
-                kill(currentRunningProcess.pid, SIGSTOP);
-                currentRunningProcess.currentState = STOPPED;
-                currentRunningProcess.remainingTime -= timeSlice;
-                currentRunningProcess.preemptedTime = getClk();
-                cqEnqueue(Q, &currentRunningProcess);
-                writeStats();
+                else
+                {
+                    if (allocate(tmp.memsize, tmp.id, 1))
+                    {
+                        isRunning = false;
+                        kill(currentRunningProcess.pid, SIGSTOP);
+                        currentRunningProcess.currentState = STOPPED;
+                        currentRunningProcess.remainingTime -= timeSlice;
+                        currentRunningProcess.preemptedTime = getClk();
+                        cqEnqueue(Q, &currentRunningProcess);
+                        writeStats();
+                    }
+                    else
+                    {
+                        PCB till;
+                        cqDequeue(Q, &till);
+                        cqEnqueue(Q, &till);
+                    }
+                }
             }
         }
         if (!isRunning && !cqIsEmpty(Q))
         {
-
             isRunning = true;
             cqDequeue(Q, &currentRunningProcess);
             if (currentRunningProcess.startingTime < 0)
@@ -588,7 +609,7 @@ void RR(int tS)
                 currentRunningProcess.currentState = STARTED;
                 currentRunningProcess.waitingTime = getClk() - currentRunningProcess.arrivalTime;
                 avgWaiting += currentRunningProcess.waitingTime;
-                allocate(currentRunningProcess.memsize, currentRunningProcess.id, 0);
+                 allocate(currentRunningProcess.memsize, currentRunningProcess.id, 0);
             }
             else
             {
@@ -622,7 +643,6 @@ void RR(int tS)
         }
     }
 }
-
 int main(int argc, char *argv[])
 {
     // TODO implement the scheduler :)
@@ -634,12 +654,12 @@ int main(int argc, char *argv[])
     Qid = msgget(PG_SH_KEY, 0666 | IPC_CREAT);
     signal(SIGINT, handler);
     signal(SIGUSR2, handler);
-     processesCount = 3;
-      algoNum = 2;
-     policy = 2;
-   // processesCount = atoi(argv[2]);
-   // algoNum = atoi(argv[1]);
-  //  policy = atoi(argv[4]);
+    // processesCount = 3;
+    //  algoNum = 2;
+    // policy = 2;
+    processesCount = atoi(argv[2]);
+    algoNum = atoi(argv[1]);
+    policy = atoi(argv[4]);
     WTAarr = (float *)malloc(processesCount * sizeof(float));
     intiallization(); // the array of  WTA
     printf("Num Is=%d \n", processesCount);
