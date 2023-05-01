@@ -32,9 +32,9 @@ bool INTERNAL_hasRightChild(minHeap *heap, int index)
     return Rchild(index) < heap->count;
 }
 
-struct processData *peek(minHeap *heap)
+struct PCB *Peek(minHeap *heap)
 {
-    // return heap->arr[0]; Type Of Arr To Be Modified
+     return &(heap->arr[0]); 
 }
 
 minHeap *createHeap(int capacity)

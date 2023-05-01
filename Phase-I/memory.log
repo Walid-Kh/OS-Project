@@ -1,17 +1,1 @@
-At time 1 allocated 16 bytes for process 1 from 0 to 15
-At Time 1 Freed 16 Bytes For Process 1 From 0 To 15
-At time 1 Bytes From 0 To 32 Was Combined
-At time 1 Bytes From 0 To 64 Was Combined
-At time 1 Bytes From 0 To 128 Was Combined
-At time 1 Bytes From 0 To 256 Was Combined
-At time 1 Bytes From 0 To 512 Was Combined
-At time 1 Bytes From 0 To 1024 Was Combined
-At time 1 allocated 32 bytes for process 2 from 0 to 31
-At time 3 allocated 32 bytes for process 3 from 32 to 63
-At Time 3 Freed 32 Bytes For Process 3 From 32 To 63
-At Time 5 Freed 32 Bytes For Process 2 From 0 To 31
-At time 5 Bytes From 0 To 64 Was Combined
-At time 5 Bytes From 0 To 128 Was Combined
-At time 5 Bytes From 0 To 256 Was Combined
-At time 5 Bytes From 0 To 512 Was Combined
-At time 5 Bytes From 0 To 1024 Was Combined
+At time 10 allocated 512 bytes for process 1 from 0 to 511

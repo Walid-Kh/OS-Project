@@ -57,7 +57,6 @@ int main(int argc, char *argv[])
     int policy;
     scanf("%d", &policy);
 
-
     //=======================send the selected algorithm to scheduler.c==================
     int send_val;
 
@@ -76,7 +75,7 @@ int main(int argc, char *argv[])
         execl("./clk.out", "./build/clk.out", NULL);
         exit(-1);
     }
-    schpid = fork();
+  /*/  schpid = fork();
     if (schpid == 0)
     {
         char AlgoNumStr[2];
@@ -87,11 +86,11 @@ int main(int argc, char *argv[])
         sprintf(AlgoNumStr, "%d", algoNum);
         sprintf(processesCountStr, "%d", q->count);
         sprintf(timeSliceStr, "%d", timeSlice);
-        sprintf(policyStr,"%d",policy);
+        sprintf(policyStr, "%d", policy);
 
-        execl("./scheduler.out", "./scheduler.out", AlgoNumStr, processesCountStr, timeSliceStr,policyStr,(const char *)0);
+        execl("./scheduler.out", "./scheduler.out", AlgoNumStr, processesCountStr, timeSliceStr, policyStr, (const char *)0);
         exit(0);
-    }
+    }*/
     initClk();
 
     // 4. Use this function after creating the clock process to initialize clock
@@ -127,7 +126,8 @@ int main(int argc, char *argv[])
 void clearResources(int signum)
 {
     // TODO Clears all resources in case of interruption
-    printf("\n cleaning resources");
+    printf("\n cleaning resources\n");
+    fflush(stdout);
     msgctl(Qid, IPC_RMID, NULL);
     kill(clkpid, SIGINT);
     kill(schpid, SIGINT);

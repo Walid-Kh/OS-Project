@@ -1,8 +1,1 @@
-At time 1 process 1 started arr 1 total 0 remain 0 wait 0
-At time 1 process 1 finished arr 1 total 0 remain 0 wait 0 TA 0 WA Undefined value
-At time 1 process 2 started arr 1 total 4 remain 4 wait 0
-At time 3 process 2 stopped arr 1 total 4 remain 2 wait 0
-At time 3 process 3 started arr 2 total 0 remain 0 wait 1
-At time 3 process 3 finished arr 2 total 0 remain 0 wait 1 TA 1 WA Undefined value
-At time 3 process 2 resumed arr 1 total 4 remain 2 wait 0
-At time 5 process 2 finished arr 1 total 4 remain 0 wait 0 TA 4 WA 1.000000 
+At time 10 process 1 started arr 5 total 200 remain 200 wait 5
