@@ -237,8 +237,8 @@ bool allocate(int size, int id, int type)
         }
         writeMemory(start, size, id);
         return true;
-        printf("Iam Alive");
-        fflush(stdout);
+      //  printf("Iam Alive");
+      //  fflush(stdout);
         break;
     default:
         break;
@@ -360,11 +360,11 @@ void handler(int signum)
 
         WTAarr[arrcount] = /*round*/ ((currentRunningProcess.turnAroundTime / (double)currentRunningProcess.runningTime) * 100) / 100.0f;
         avgWTA += WTAarr[arrcount++];
-        printf("Ok Iam Finished with Id=%d\n", currentRunningProcess.id);
-        fflush(stdout);
+     //   printf("Ok Iam Finished with Id=%d\n", currentRunningProcess.id);
+     //   fflush(stdout);
         writeStats();
-        printf("Are You Crazy");
-        fflush(stdout);
+      //  printf("Are You Crazy");
+      //  fflush(stdout);
          deallocate();
         waitpid(currentRunningProcess.pid, (int *)0, 0);
         signal(SIGUSR2, handler);
@@ -456,8 +456,8 @@ void SRTN()
             currentRunningProcess.preemptedTime = getClk();
             if (currentRunningProcess.remainingTime > Peek(pq)->runningTime && allocate(Peek(pq)->memsize, Peek(pq)->id, 1))
             {
-                printf("Iam Preempted");
-                fflush(stdout);
+              //  printf("Iam Preempted");
+              //  fflush(stdout);
                 kill(currentRunningProcess.pid, SIGSTOP);
                 //   printf("process Preempted With id=%d", currentRunningProcess.pid);
                 //    printf(" Process With Id=%d Preempted At%d=\n", currentRunningProcess.id, getClk());
@@ -516,8 +516,8 @@ void SRTN()
             {
                 writeStats();
                 allocate(currentRunningProcess.memsize, currentRunningProcess.id, 0);
-                printf("Iam Alive There in Fork with pid=%d and remaining time=%d", currentRunningProcess.id, currentRunningProcess.remainingTime);
-                fflush(stdout);
+            //    printf("Iam Alive There in Fork with pid=%d and remaining time=%d", currentRunningProcess.id, currentRunningProcess.remainingTime);
+            //    fflush(stdout);
                 int pid = fork();
                 if (pid == 0)
                 {

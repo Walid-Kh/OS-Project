@@ -10,11 +10,26 @@ int main(int argc, char *argv[])
     signal(SIGINT, clearResources);
     // TODO Initialization
     // 1. Read the input files. (done)
-    char line[50];
+    char line[90];
     FILE *fp;
-    fp = fopen("processes.txt", "r"); // Open processes.txt
-    fgets(line, sizeof(line), fp);    // Get first line and ignore it
-    struct Queue *q = createQueue();  // call the constractor;
+    char *filename = argv[1];
+    int algoNum = atoi(argv[3]);
+    int quantum;
+    int timeSlice;
+    int policy;
+    if (algoNum == 3)
+    {
+        timeSlice = atoi(argv[5]);
+        policy = atoi(argv[7]);
+    }
+    else
+    {
+        policy = atoi(argv[5]);
+    }
+
+    fp = fopen(filename, "r");       // Open processes.txt
+    fgets(line, sizeof(line), fp);   // Get first line and ignore it
+    struct Queue *q = createQueue(); // call the constractor;
 
     int z;
     while (!feof(fp)) // Get the data for each process and creat it
@@ -37,26 +52,26 @@ int main(int argc, char *argv[])
     fclose(fp);
 
     // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
-    printf("Which scheduling algorithm do you want?\n");
-    printf("1. Non-preemptive Highest Priority First (HPF).\n");
-    printf("2. Shortest Remaining time Next (SRTN).\n");
-    printf("3. Round Robin (RR).\n");
-    printf("======Enter the number of the algorithm you want=====\n");
-    int algoNum, timeSlice = 0;
-    scanf("%d", &algoNum);
-    if (algoNum == 3)
-    {
-        printf("You choice Round Robin (RR) algorithm ,please enter time slice in second unit");
-        while (timeSlice <= 0)
-            scanf("%d", &timeSlice);
-    }
-    printf("======Which allocation policies do you want?=====\n");
-    printf("1. First Fit.\n");
-    printf("2. Buddy System.\n");
-    printf("======Enter the policy number=====\n");
-    int policy;
-    scanf("%d", &policy);
-
+    /*/    printf("Which scheduling algorithm do you want?\n");
+        printf("1. Non-preemptive Highest Priority First (HPF).\n");
+        printf("2. Shortest Remaining time Next (SRTN).\n");
+        printf("3. Round Robin (RR).\n");
+        printf("======Enter the number of the algorithm you want=====\n");*/
+    /*/   int algoNum, timeSlice = 0;
+       scanf("%d", &algoNum);
+       if (algoNum == 3)
+       {
+           printf("You choice Round Robin (RR) algorithm ,please enter time slice in second unit");
+           while (timeSlice <= 0)
+               scanf("%d", &timeSlice);
+       }
+       printf("======Which allocation policies do you want?=====\n");
+       printf("1. First Fit.\n");
+       printf("2. Buddy System.\n");
+       printf("======Enter the policy number=====\n");
+       int policy;
+       scanf("%d", &policy);
+       * /*/
     //=======================send the selected algorithm to scheduler.c==================
     int send_val;
 
